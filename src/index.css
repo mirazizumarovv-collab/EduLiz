@@ -19,3 +19,10 @@ input:focus, button:focus { outline: 2px solid #3A6EA5; outline-offset: 1px; }
 html { font-size: 15px; }
 @media (min-width: 380px) { html { font-size: 16px; } }
 @media (min-width: 900px) { html { font-size: 16px; } }
+
+/* Native <input type="time"> renders its own browser/OS clock icon that
+   ignores normal CSS `color` — it's a fixed black SVG regardless of theme.
+   Inverting it in dark mode is the only reliable cross-browser fix. */
+[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}

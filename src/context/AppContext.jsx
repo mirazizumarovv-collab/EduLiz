@@ -93,9 +93,10 @@ export function AppProvider({ children }) {
   useEffect(() => {
     document.documentElement.style.background = theme.colors.background;
     document.body.style.background = theme.colors.background;
+    document.documentElement.setAttribute("data-theme", themeMode);
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute("content", theme.colors.surface);
-  }, [theme]);
+  }, [theme, themeMode]);
   const t = useCallback((key, vars) => translate(lang, key, vars), [lang]);
 
   const showToast = useCallback((message) => {

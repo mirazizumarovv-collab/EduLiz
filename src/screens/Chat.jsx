@@ -59,14 +59,14 @@ export default function Chat() {
   });
 
   return (
-    <div>
+    <div style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "18px 16px 8px" }}>
         <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 2, color: c.textPrimary }}>{t("navChat")}</div>
         <div style={{ fontSize: 12, color: c.textSecondary }}>{t("chatSubtitle")}</div>
         <div style={{ fontSize: 10.5, color: c.textSecondary, marginTop: 4 }}>{t("replyTimeNote", { hours: CENTER_REPLY_TIME_HOURS })}</div>
       </div>
 
-      <div style={{ padding: "0 16px", minHeight: "50vh" }}>
+      <div style={{ flex: "1 0 auto", padding: "0 16px" }}>
         {list.length === 0 ? (
           <EmptyState icon="💬" title={t("noMessages")} />
         ) : renderItems.map((item, i) => {
@@ -97,7 +97,7 @@ export default function Chat() {
         })}
       </div>
 
-      <div style={{ position: "sticky", bottom: 0, display: "flex", gap: 8, padding: "10px 16px calc(14px + env(safe-area-inset-bottom))", background: c.surface, borderTop: `1px solid ${c.border}` }}>
+      <div style={{ position: "sticky", bottom: 0, flexShrink: 0, display: "flex", gap: 8, padding: "10px 16px calc(14px + env(safe-area-inset-bottom))", background: c.surface, borderTop: `1px solid ${c.border}` }}>
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
