@@ -91,10 +91,12 @@ export function exportChildDataToExcel(student) {
     subjectRows, [16, 12, 16, 16, 20, 20, 20]
   );
 
-  const attendanceRows = monthDays.map(d => [d.day, d.subject, d.teacher, d.time, d.topic, STATUS_UZ[d.status], d.lateBy || "", d.checkIn || "", d.checkedInBy || ""]);
-  addSheet(wb, "Davomat", "Davomat — kunlik jurnal", subtitle,
-    ["Kun", "Fan", "O'qituvchi", "Vaqt", "Mavzu", "Holat", "Kechikish (daq.)", "Kelgan vaqti", "Qayd etdi"],
-    attendanceRows, [6, 14, 18, 14, 26, 12, 14, 12, 16]
+  const attendanceRows = MONTHS.flatMap(m =>
+    (attendanceData[m] || []).map(d => [MONTH_NAMES.uz[m] || m, d.day, d.subject, d.teacher, d.time, d.topic, STATUS_UZ[d.status], d.lateBy || "", d.checkIn || "", d.checkedInBy || ""])
+  );
+  addSheet(wb, "Davomat", "Davomat — kunlik jurnal (Mart–Sentyabr)", subtitle,
+    ["Oy", "Kun", "Fan", "O'qituvchi", "Vaqt", "Mavzu", "Holat", "Kechikish (daq.)", "Kelgan vaqti", "Qayd etdi"],
+    attendanceRows, [10, 6, 14, 18, 14, 26, 12, 14, 12, 16]
   );
 
   const gradeRows = grades.map(s => [s.name, `${s.score}%`, `${s.classAvg}%`, ...s.monthly.map(m => m.score)]);

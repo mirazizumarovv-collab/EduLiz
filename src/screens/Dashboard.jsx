@@ -65,7 +65,7 @@ export default function Dashboard({ onNavigate }) {
 
   return (
     <div style={{ padding: "18px 16px 8px" }}>
-      <div style={{ fontFamily: "inherit", fontSize: 22, fontWeight: 800, marginBottom: 14 }}>
+      <div style={{ fontFamily: "inherit", fontSize: 22, fontWeight: 800, marginBottom: 14, color: c.textPrimary }}>
         {t("dashboardGreeting", { name: "Dilnoza" })}
       </div>
 

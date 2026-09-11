@@ -9,7 +9,7 @@ export function AppShell({ header, children, bottomNav }) {
     <div style={{ minHeight: "100dvh", background: theme.colors.background, display: "flex", justifyContent: "center" }}>
       <div
         style={{
-          width: "100%", maxWidth: 480, minHeight: "100dvh", background: theme.colors.surface,
+          width: "100%", maxWidth: 480, minHeight: "100dvh", background: theme.colors.surface, color: theme.colors.textPrimary,
           display: "flex", flexDirection: "column", position: "relative",
           boxShadow: "0 0 40px rgba(0,0,0,0.08)",
         }}

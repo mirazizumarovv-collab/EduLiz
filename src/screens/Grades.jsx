@@ -30,7 +30,7 @@ export default function Grades() {
 
   return (
     <div style={{ padding: "18px 16px 8px" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 2 }}>{t("gradesTitle")}</div>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 2, color: c.textPrimary }}>{t("gradesTitle")}</div>
       <div style={{ fontSize: 12.5, color: c.textSecondary, marginBottom: 16 }}>{t("gradesSubtitle")}</div>
 
       {subjects.map(s => {
@@ -38,7 +38,7 @@ export default function Grades() {
         return (
           <div key={s.name} style={{ background: c.surfaceAlt, borderRadius: 10, padding: 14, marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ fontSize: 14, fontWeight: 700 }}>{subj(lang, s.name)}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: c.textPrimary }}>{subj(lang, s.name)}</span>
               <span style={{ fontSize: 22, fontWeight: 800, color: scoreColor(theme, s.score) }}>{s.score}%</span>
             </div>
             <div style={{ fontSize: 11.5, color: c.textSecondary, marginBottom: 8 }}>

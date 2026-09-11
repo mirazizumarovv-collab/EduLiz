@@ -84,6 +84,18 @@ export function AppProvider({ children }) {
   );
 
   const theme = useMemo(() => getTheme(themeMode), [themeMode]);
+
+  // The app's own containers are correctly themed, but the raw <html>/<body>
+  // behind them defaults to white. On an installed PWA, safe-area padding
+  // (gesture bar) and rubber-band overscroll can both briefly reveal that
+  // white strip at the edges — syncing it to the theme's background makes
+  // any such gap show the right color instead of a jarring white/pink flash.
+  useEffect(() => {
+    document.documentElement.style.background = theme.colors.background;
+    document.body.style.background = theme.colors.background;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", theme.colors.surface);
+  }, [theme]);
   const t = useCallback((key, vars) => translate(lang, key, vars), [lang]);
 
   const showToast = useCallback((message) => {

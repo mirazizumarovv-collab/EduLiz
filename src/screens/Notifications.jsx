@@ -50,7 +50,7 @@ export default function Notifications() {
   return (
     <div style={{ padding: "18px 16px 8px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <div style={{ fontSize: 20, fontWeight: 800 }}>{t("notificationsTitle")}</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: c.textPrimary }}>{t("notificationsTitle")}</div>
         {allVisible.length > 0 && (
           <button onClick={markAllRead} style={{ border: "none", background: "transparent", color: c.accent, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
             {t("markAllRead")}
@@ -96,7 +96,7 @@ export default function Notifications() {
               {!read && <span style={{ width: 7, height: 7, borderRadius: "50%", background: c.accent, marginTop: 6, flexShrink: 0 }} />}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 10.5, color: c.textSecondary, marginBottom: 2 }}>{t(CATEGORY_LABEL_KEY[n.category])}</div>
-                <div style={{ fontSize: 13, fontWeight: read ? 500 : 700 }}>{t(n.textKey, resolveVars(n))}</div>
+                <div style={{ fontSize: 13, fontWeight: read ? 500 : 700, color: c.textPrimary }}>{t(n.textKey, resolveVars(n))}</div>
                 <div style={{ fontSize: 10.5, color: c.textSecondary, marginTop: 3 }}>{formatTime(n.time, lang)}</div>
               </div>
               {!read && (

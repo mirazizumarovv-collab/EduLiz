@@ -30,7 +30,7 @@ export default function ConnectChild({ onNavigate }) {
 
   return (
     <div style={{ padding: "18px 16px 8px" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>{t("connectChildTitle")}</div>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6, color: c.textPrimary }}>{t("connectChildTitle")}</div>
       <div style={{ fontSize: 12.5, color: c.textSecondary, lineHeight: 1.6, marginBottom: 20 }}>{t("connectChildDesc")}</div>
 
       <label style={{ fontSize: 11.5, color: c.textSecondary, marginBottom: 4, display: "block" }}>{t("invitationCode")}</label>

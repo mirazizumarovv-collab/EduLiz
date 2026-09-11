@@ -66,7 +66,7 @@ export default function Homework() {
 
   return (
     <div style={{ padding: "18px 16px 8px" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 2 }}>{t("homeworkTitle")}</div>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 2, color: c.textPrimary }}>{t("homeworkTitle")}</div>
       <div style={{ fontSize: 12.5, color: c.textSecondary, marginBottom: 14 }}>{t("homeworkSubtitle")}</div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>

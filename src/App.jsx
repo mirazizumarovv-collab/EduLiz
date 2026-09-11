@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { AppProvider, useApp } from "./context/AppContext.jsx";
 import { getNotifications } from "./data/notifications.js";
 import { getAttendance } from "./data/attendance.js";
@@ -10,7 +11,7 @@ import { Header } from "./components/layout/Header.jsx";
 import { BottomNav } from "./components/layout/BottomNav.jsx";
 import { BottomSheet } from "./components/common/Feedback.jsx";
 import { Toast } from "./components/common/Feedback.jsx";
-import { Row } from "./components/common/UI.jsx";
+import { Row, Button } from "./components/common/UI.jsx";
 
 import Onboarding from "./screens/Onboarding.jsx";
 import Registration from "./screens/Registration.jsx";
@@ -35,29 +36,115 @@ const SCREEN_MAP = {
 };
 
 function PinLockScreen() {
-  const { t, theme, pin, setLocked } = useApp();
+  const { t, theme, pin, setPin, setLocked, parentPhone } = useApp();
   const c = theme.colors;
   const [entry, setEntry] = useState("");
   const [error, setError] = useState(false);
+  const [reveal, setReveal] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [step, setStep] = useState("confirm"); // confirm -> code -> newpin
+  const [demoCode, setDemoCode] = useState("");
+  const [codeEntry, setCodeEntry] = useState("");
+  const [codeError, setCodeError] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [newPinConfirm, setNewPinConfirm] = useState("");
+  const [newPinError, setNewPinError] = useState("");
 
   const submit = () => {
     if (entry === pin) setLocked(false);
     else { setError(true); setEntry(""); }
   };
 
+  const openForgot = () => {
+    setStep("confirm");
+    setCodeEntry(""); setCodeError(""); setNewPin(""); setNewPinConfirm(""); setNewPinError("");
+    setForgotOpen(true);
+  };
+  const sendCode = () => {
+    // No real SMS gateway in this demo — the code is generated locally and
+    // shown on-screen instead of actually being sent, but the verification
+    // flow itself (code -> new PIN) is fully real, not skipped.
+    setDemoCode(String(Math.floor(1000 + Math.random() * 9000)));
+    setStep("code");
+  };
+  const verifyCode = () => {
+    if (codeEntry === demoCode) { setStep("newpin"); setCodeError(""); }
+    else setCodeError(t("wrongCode"));
+  };
+  const saveNewPin = () => {
+    if (!/^\d{4}$/.test(newPin)) { setNewPinError(t("enterPin")); return; }
+    if (newPin !== newPinConfirm) { setNewPinError(t("pinMismatch")); return; }
+    setPin(newPin);
+    setForgotOpen(false);
+    setLocked(false);
+  };
+
   return (
     <div style={{ height: "100dvh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "0 28px", background: c.surface }}>
       <div style={{ fontSize: 30, marginBottom: 10 }}>🔒</div>
       <div style={{ fontSize: 15, fontWeight: 700, color: c.textPrimary, marginBottom: 16, textAlign: "center" }}>{t("enterYourPin")}</div>
-      <input
-        value={entry} onChange={(e) => { setEntry(e.target.value.replace(/\D/g, "").slice(0, 4)); setError(false); }}
-        type="text" inputMode="numeric" maxLength={4} placeholder="••••"
-        style={{ width: "100%", maxWidth: 220, textAlign: "center", letterSpacing: 6, fontSize: 18, border: `1px solid ${c.border}`, borderRadius: 10, padding: 12, marginBottom: 10, background: c.surfaceAlt, color: c.textPrimary }}
-      />
+      <div style={{ position: "relative", width: "100%", maxWidth: 220, marginBottom: 10 }}>
+        <input
+          value={entry} onChange={(e) => { setEntry(e.target.value.replace(/\D/g, "").slice(0, 4)); setError(false); }}
+          type={reveal ? "text" : "password"} inputMode="numeric" maxLength={4} placeholder="••••"
+          style={{ width: "100%", textAlign: "center", letterSpacing: 6, fontSize: 18, border: `1px solid ${c.border}`, borderRadius: 10, padding: "12px 40px 12px 12px", background: c.surfaceAlt, color: c.textPrimary, boxSizing: "border-box" }}
+        />
+        <button
+          type="button" onClick={() => setReveal(r => !r)} aria-label={reveal ? t("hidePin") : t("showPin")}
+          style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", border: "none", background: "transparent", color: c.textSecondary, cursor: "pointer", padding: 4, display: "flex" }}
+        >
+          {reveal ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
       {error && <div style={{ color: c.danger, fontSize: 12, marginBottom: 10 }}>{t("wrongPin")}</div>}
       <button onClick={submit} style={{ width: "100%", maxWidth: 220, border: "none", background: c.surfaceStrong, color: c.onAccent, borderRadius: 10, padding: "13px 0", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
         {t("unlock")}
       </button>
+      <button onClick={openForgot} style={{ border: "none", background: "transparent", color: c.textSecondary, fontSize: 12.5, marginTop: 16, cursor: "pointer", textDecoration: "underline" }}>
+        {t("forgotPin")}
+      </button>
+
+      <BottomSheet open={forgotOpen} onClose={() => setForgotOpen(false)} title={t("forgotPinTitle")}>
+        {step === "confirm" && (
+          <>
+            <div style={{ fontSize: 13, color: c.textSecondary, marginBottom: 14, lineHeight: 1.6 }}>{t("forgotPinConfirmBody")}</div>
+            <div style={{ background: c.surfaceAlt, borderRadius: 10, padding: "12px 14px", marginBottom: 16, fontSize: 15, fontWeight: 700, color: c.textPrimary, textAlign: "center" }}>
+              {parentPhone || "—"}
+            </div>
+            <Button onClick={sendCode} disabled={!parentPhone} style={{ width: "100%" }}>{t("sendCode")}</Button>
+          </>
+        )}
+        {step === "code" && (
+          <>
+            <div style={{ fontSize: 13, color: c.textSecondary, marginBottom: 6, lineHeight: 1.6 }}>{t("codeSentTo", { phone: parentPhone })}</div>
+            <div style={{ fontSize: 11.5, color: c.accent, marginBottom: 14, lineHeight: 1.5 }}>{t("demoCodeNote", { code: demoCode })}</div>
+            <input
+              value={codeEntry} onChange={(e) => { setCodeEntry(e.target.value.replace(/\D/g, "").slice(0, 4)); setCodeError(""); }}
+              inputMode="numeric" maxLength={4} placeholder="0000"
+              style={{ width: "100%", textAlign: "center", letterSpacing: 6, fontSize: 18, border: `1px solid ${codeError ? c.danger : c.border}`, borderRadius: 10, padding: 12, marginBottom: 8, background: c.surfaceAlt, color: c.textPrimary, boxSizing: "border-box" }}
+            />
+            {codeError && <div style={{ color: c.danger, fontSize: 12, marginBottom: 8 }}>{codeError}</div>}
+            <Button onClick={verifyCode} style={{ width: "100%" }}>{t("verifyCode")}</Button>
+          </>
+        )}
+        {step === "newpin" && (
+          <>
+            <div style={{ fontSize: 13, color: c.textSecondary, marginBottom: 14 }}>{t("setNewPinBody")}</div>
+            <input
+              value={newPin} onChange={(e) => { setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4)); setNewPinError(""); }}
+              type="password" inputMode="numeric" maxLength={4} placeholder="••••"
+              style={{ width: "100%", textAlign: "center", letterSpacing: 4, fontSize: 16, border: `1px solid ${c.border}`, borderRadius: 10, padding: 12, marginBottom: 10, background: c.surfaceAlt, color: c.textPrimary, boxSizing: "border-box" }}
+            />
+            <input
+              value={newPinConfirm} onChange={(e) => { setNewPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 4)); setNewPinError(""); }}
+              type="password" inputMode="numeric" maxLength={4} placeholder="••••"
+              style={{ width: "100%", textAlign: "center", letterSpacing: 4, fontSize: 16, border: `1px solid ${c.border}`, borderRadius: 10, padding: 12, marginBottom: 10, background: c.surfaceAlt, color: c.textPrimary, boxSizing: "border-box" }}
+            />
+            {newPinError && <div style={{ color: c.danger, fontSize: 12, marginBottom: 10 }}>{newPinError}</div>}
+            <Button onClick={saveNewPin} style={{ width: "100%" }}>{t("saveNewPin")}</Button>
+          </>
+        )}
+      </BottomSheet>
     </div>
   );
 }

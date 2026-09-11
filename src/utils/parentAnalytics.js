@@ -50,6 +50,11 @@ export function computeParentAnalytics({ studentId, grades, attendanceData, home
   const attLast = attWithData.length ? attWithData[attWithData.length - 1].pct : null;
   const attPrevMonth = attWithData.length > 1 ? attWithData[attWithData.length - 2].pct : attFirst;
   const attMoMDelta = (attLast !== null && attPrevMonth !== null) ? attLast - attPrevMonth : 0;
+  // The real months behind attFirst/attLast/attPrevMonth — NOT assumed to be
+  // the same as gradeMonths' boundaries, since attendance can have gaps.
+  const attFirstMonth = attWithData.length ? attWithData[0].month : null;
+  const attLastMonth = attWithData.length ? attWithData[attWithData.length - 1].month : null;
+  const attPrevMonthKey = attWithData.length > 1 ? attWithData[attWithData.length - 2].month : attFirstMonth;
 
   // --- Homework: sparse by nature (only months with assignments); looked up
   // by month key so composite scoring can skip months with no homework. ---
@@ -62,9 +67,20 @@ export function computeParentAnalytics({ studentId, grades, attendanceData, home
   });
   const hwPctByMonthKey = new Map(hwByMonth.map(r => [r.month, r.pct]));
   const hwStatsOverall = homeworkStats(homework.pending, homework.history);
-  const hwCurrentMonthPct = hwByMonth.length ? hwByMonth[hwByMonth.length - 1].pct : hwStatsOverall.completionRate;
-  const hwPrevMonthPct = hwByMonth.length > 1 ? hwByMonth[hwByMonth.length - 2].pct : hwCurrentMonthPct;
+  // Anchor "current"/"previous" to CURRENT_MONTH explicitly rather than
+  // trusting "last item in the array" — a future-dated homework entry
+  // should never be mistaken for the current month's data.
+  const currentMonthIdx = MONTHS.indexOf(CURRENT_MONTH);
+  const hwByMonthUpToNow = hwByMonth.filter(r => MONTHS.indexOf(r.month) <= currentMonthIdx);
+  const hwCurrentEntry = hwByMonthUpToNow.find(r => r.month === CURRENT_MONTH) || hwByMonthUpToNow[hwByMonthUpToNow.length - 1] || null;
+  const hwCurrentMonthPct = hwCurrentEntry ? hwCurrentEntry.pct : hwStatsOverall.completionRate;
+  const hwCurrentIdx = hwCurrentEntry ? hwByMonthUpToNow.indexOf(hwCurrentEntry) : -1;
+  const hwPrevEntry = hwCurrentIdx > 0 ? hwByMonthUpToNow[hwCurrentIdx - 1] : null;
+  const hwPrevMonthPct = hwPrevEntry ? hwPrevEntry.pct : hwCurrentMonthPct;
   const hwMoMDelta = hwCurrentMonthPct - hwPrevMonthPct;
+  const hwFirstMonth = hwByMonthUpToNow.length ? hwByMonthUpToNow[0].month : null;
+  const hwLastMonth = hwCurrentEntry ? hwCurrentEntry.month : null;
+  const hwPrevMonthKey = hwPrevEntry ? hwPrevEntry.month : hwFirstMonth;
 
   // --- ONE composite series across the full reporting period. This is what
   // "Overall Score" and the "Overall Trend" chart both read from, so they
@@ -83,7 +99,7 @@ export function computeParentAnalytics({ studentId, grades, attendanceData, home
   // if attendance or homework had no data this month) — this is what the
   // "Based on grades (X%), attendance (Y%), homework (Z%)" caption reads.
   const currentHwPct = hwPctByMonthKey.get(lastGradeMonth);
-  const currentAttPct = attByMonth[attByMonth.length - 1].pct;
+  const currentAttPct = attLastMonth === lastGradeMonth ? attLast : null;
   const currentParts = [{ key: "grades", w: BASE_WEIGHTS.grades }];
   if (currentAttPct !== null) currentParts.push({ key: "attendance", w: BASE_WEIGHTS.attendance });
   if (currentHwPct !== undefined) currentParts.push({ key: "homework", w: BASE_WEIGHTS.homework });
@@ -106,18 +122,19 @@ export function computeParentAnalytics({ studentId, grades, attendanceData, home
   const signals = [overallMoMDelta, attMoMDelta, hwMoMDelta];
   const decliningCount = signals.filter(s => s < -1).length;
   const improvingCount = signals.filter(s => s > 1).length;
+  const hasWeakSubject = (needsAttention.score - needsAttention.classAvg) < -5;
   let overallStatus;
-  if (overallDeltaSinceFirst < -2 && overallMoMDelta <= 0) overallStatus = "declining";
-  else if (decliningCount >= 1) overallStatus = "needsAttention";
-  else if (improvingCount >= 1 || overallDeltaSinceFirst > 3) overallStatus = "improving";
+  if (overallMoMDelta < -1 || (overallDeltaSinceFirst < -2 && overallMoMDelta <= 0)) overallStatus = "declining";
+  else if (decliningCount >= 2 || hasWeakSubject) overallStatus = "needsAttention";
+  else if (overallMoMDelta > 1 || improvingCount >= 1 || overallDeltaSinceFirst > 3) overallStatus = "improving";
   else overallStatus = "stable";
 
   return {
     firstGradeMonth, lastGradeMonth, gradeMonths,
     subjectTrends, academicByMonth, compositeByMonth,
     overallFirst, overallLast, overallDeltaSinceFirst, overallPrevMonth, overallMoMDelta,
-    attByMonth, attFirst, attLast, attPrevMonth, attMoMDelta,
-    hwByMonth, hwStatsOverall, hwCurrentMonthPct, hwPrevMonthPct, hwMoMDelta,
+    attByMonth, attFirst, attLast, attPrevMonth, attMoMDelta, attFirstMonth, attLastMonth, attPrevMonthKey,
+    hwByMonth, hwStatsOverall, hwCurrentMonthPct, hwPrevMonthPct, hwMoMDelta, hwFirstMonth, hwLastMonth, hwPrevMonthKey,
     overallScore, overallWeights, strongest, needsAttention, overallStatus,
   };
 }

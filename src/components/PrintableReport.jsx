@@ -69,10 +69,11 @@ export function PrintableReport({ student, lang, t, onClose }) {
   if (a.hwStatsOverall.onTimeRate < 85) recommendations.push(t("recTextHw", { rate: a.hwStatsOverall.onTimeRate }));
   if (recommendations.length === 0) recommendations.push(t("recTextGood", { name: student.name }));
 
+  const overallPrevMonthKey = a.gradeMonths[a.gradeMonths.length - 2];
   const comparisonRows = [
-    [t("overallLabel"), a.overallPrevMonth, a.overallLast, a.overallMoMDelta],
-    [t("attendanceRate"), a.attPrevMonth, a.attLast, a.attMoMDelta],
-    [t("homeworkPerformance"), a.hwPrevMonthPct, a.hwCurrentMonthPct, a.hwMoMDelta],
+    { label: t("overallLabel"), prev: a.overallPrevMonth, curr: a.overallLast, delta: a.overallMoMDelta, prevMonth: overallPrevMonthKey, currMonth: a.lastGradeMonth },
+    { label: t("attendanceRate"), prev: a.attPrevMonth, curr: a.attLast, delta: a.attMoMDelta, prevMonth: a.attPrevMonthKey, currMonth: a.attLastMonth },
+    { label: t("homeworkPerformance"), prev: a.hwPrevMonthPct, curr: a.hwCurrentMonthPct, delta: a.hwMoMDelta, prevMonth: a.hwPrevMonthKey, currMonth: a.hwLastMonth },
   ];
 
   return (
@@ -92,8 +93,14 @@ export function PrintableReport({ student, lang, t, onClose }) {
 
       <div style={{ fontSize: 26, fontWeight: 800, color: "#142238" }}>{t("monthlyProgressReport")}</div>
       <div style={{ fontSize: 14, color: "#6C82A0", marginTop: 4 }}>{student.name} · {student.grade} · {student.group}</div>
+      <div style={{ fontSize: 12.5, color: "#6C82A0", marginBottom: 4 }}>
+        {t("academicPeriodLabel")}: {mn(a.firstGradeMonth)} – {mn(a.lastGradeMonth)}
+      </div>
+      <div style={{ fontSize: 12.5, color: "#6C82A0", marginBottom: 4 }}>
+        {t("attendancePeriodLabel")}: {a.attFirstMonth ? `${mn(a.attFirstMonth)} – ${mn(a.attLastMonth)}` : t("noAttendanceData")}
+      </div>
       <div style={{ fontSize: 12.5, color: "#6C82A0", marginBottom: 22 }}>
-        {t("reportingPeriod")}: {mn(a.firstGradeMonth)} – {mn(a.lastGradeMonth)}
+        {t("homeworkPeriodLabel")}: {a.hwFirstMonth ? `${mn(a.hwFirstMonth)} – ${mn(a.hwLastMonth)}` : t("noHomework")}
       </div>
 
       <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
@@ -126,19 +133,23 @@ export function PrintableReport({ student, lang, t, onClose }) {
         <thead>
           <tr style={{ background: "#24405F", color: "#fff" }}>
             <th style={{ padding: 8, textAlign: "left" }}>{t("metricLabel")}</th>
-            <th style={{ padding: 8, textAlign: "right" }}>{mn(a.attByMonth[a.attByMonth.length - 2]?.month || a.firstGradeMonth)}</th>
-            <th style={{ padding: 8, textAlign: "right" }}>{mn(a.lastGradeMonth)}</th>
+            <th style={{ padding: 8, textAlign: "right" }}>{t("prevLabel")}</th>
+            <th style={{ padding: 8, textAlign: "right" }}>{t("currentLabel")}</th>
             <th style={{ padding: 8, textAlign: "right" }}>{t("changeLabel")}</th>
           </tr>
         </thead>
         <tbody>
-          {comparisonRows.map(([label, prev, curr, delta]) => (
-            <tr key={label} style={{ borderBottom: "1px solid #E4ECF4" }}>
-              <td style={{ padding: 8 }}>{label}</td>
-              <td style={{ padding: 8, textAlign: "right", color: "#6C82A0" }}>{prev !== null ? `${prev}%` : t("noAttendanceData")}</td>
-              <td style={{ padding: 8, textAlign: "right", fontWeight: 700 }}>{curr !== null ? `${curr}%` : t("noAttendanceData")}</td>
-              <td style={{ padding: 8, textAlign: "right", color: (prev !== null && curr !== null && delta >= 0) ? "#3FA968" : "#C65D4B", fontWeight: 700 }}>
-                {(prev !== null && curr !== null) ? `${delta > 0 ? "+" : ""}${delta}%` : "—"}
+          {comparisonRows.map(row => (
+            <tr key={row.label} style={{ borderBottom: "1px solid #E4ECF4" }}>
+              <td style={{ padding: 8 }}>{row.label}</td>
+              <td style={{ padding: 8, textAlign: "right", color: "#6C82A0" }}>
+                {row.prevMonth ? `${mn(row.prevMonth)} ` : ""}{row.prev !== null ? `${row.prev}%` : t("noData")}
+              </td>
+              <td style={{ padding: 8, textAlign: "right", fontWeight: 700 }}>
+                {row.currMonth ? `${mn(row.currMonth)} ` : ""}{row.curr !== null ? `${row.curr}%` : t("noData")}
+              </td>
+              <td style={{ padding: 8, textAlign: "right", color: (row.prev !== null && row.curr !== null && row.delta >= 0) ? "#3FA968" : "#C65D4B", fontWeight: 700 }}>
+                {(row.prev !== null && row.curr !== null) ? `${row.delta > 0 ? "+" : ""}${row.delta}%` : "—"}
               </td>
             </tr>
           ))}
@@ -166,9 +177,9 @@ export function PrintableReport({ student, lang, t, onClose }) {
         />
       </div>
 
-      {homeworkChartData.length > 0 && (
+      <div style={{ fontSize: 17, fontWeight: 800, color: "#142238", marginBottom: 10 }}>{t("navHomework")}</div>
+      {homeworkChartData.length > 0 ? (
         <>
-          <div style={{ fontSize: 17, fontWeight: 800, color: "#142238", marginBottom: 10 }}>{t("navHomework")}</div>
           <div style={{ height: 190, marginBottom: 12 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={homeworkChartData}>
@@ -189,6 +200,8 @@ export function PrintableReport({ student, lang, t, onClose }) {
             {t("hwStatusBreakdown", { completed: a.hwStatsOverall.completed, pending: a.hwStatsOverall.pending, overdue: a.hwStatsOverall.overdue })}
           </div>
         </>
+      ) : (
+        <div style={{ textAlign: "center", padding: "16px 0", fontSize: 12, color: "#6C82A0", marginBottom: 26 }}>{t("noData")}</div>
       )}
 
       <div style={{ fontSize: 17, fontWeight: 800, color: "#142238", marginBottom: 10 }}>{t("perSubjectChange")}</div>

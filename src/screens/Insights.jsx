@@ -62,15 +62,16 @@ export default function Insights({ onOpenPrintReport }) {
     : t("overallConclusionGood", { name: selectedStudent.name });
 
   const recommendations = [];
-  if (subjectNote) recommendations.push(t("focusReviewSubject", { subject: subj(lang, a.needsAttention.name) }));
-  if (a.hwMoMDelta < 0) recommendations.push(t("focusHomeworkSchedule"));
-  if (a.attMoMDelta < 0) recommendations.push(t("focusAttendance"));
+  if (subjectNote) recommendations.push(t("focusReviewSubject", { subject: subj(lang, a.needsAttention.name), diff: Math.abs(a.needsAttention.score - a.needsAttention.classAvg) }));
+  if (a.hwMoMDelta < 0) recommendations.push(t("focusHomeworkSchedule", { delta: Math.abs(a.hwMoMDelta) }));
+  if (a.attMoMDelta < 0) recommendations.push(t("focusAttendance", { delta: Math.abs(a.attMoMDelta) }));
   if (recommendations.length === 0) recommendations.push(t("focusKeepGoing", { subject: subj(lang, a.strongest.name) }));
 
+  const overallPrevMonthKey = a.gradeMonths[a.gradeMonths.length - 2];
   const comparisonRows = [
-    [t("overallLabel"), a.overallPrevMonth, a.overallLast, a.overallMoMDelta],
-    [t("attendanceRate"), a.attPrevMonth, a.attLast, a.attMoMDelta],
-    [t("homeworkPerformance"), a.hwPrevMonthPct, a.hwCurrentMonthPct, a.hwMoMDelta],
+    { label: t("overallLabel"), prev: a.overallPrevMonth, curr: a.overallLast, delta: a.overallMoMDelta, prevMonth: overallPrevMonthKey, currMonth: a.lastGradeMonth },
+    { label: t("attendanceRate"), prev: a.attPrevMonth, curr: a.attLast, delta: a.attMoMDelta, prevMonth: a.attPrevMonthKey, currMonth: a.attLastMonth },
+    { label: t("homeworkPerformance"), prev: a.hwPrevMonthPct, curr: a.hwCurrentMonthPct, delta: a.hwMoMDelta, prevMonth: a.hwPrevMonthKey, currMonth: a.hwLastMonth },
   ];
 
   return (
@@ -78,7 +79,7 @@ export default function Insights({ onOpenPrintReport }) {
       {/* OVERALL PROGRESS */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 2 }}>{t("overallProgress")}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 2, color: c.textPrimary }}>{t("overallProgress")}</div>
           <div style={{ fontSize: 12.5, color: c.textSecondary, marginBottom: 16 }}>{selectedStudent.name}</div>
         </div>
         {onOpenPrintReport && (
@@ -118,18 +119,22 @@ export default function Insights({ onOpenPrintReport }) {
           <thead>
             <tr>
               <td style={{ padding: "4px 4px", color: c.textSecondary, fontSize: 11 }}>{t("metricLabel")}</td>
-              <td style={{ padding: "4px 4px", color: c.textSecondary, fontSize: 11, textAlign: "right" }}>{mn(a.attByMonth[a.attByMonth.length - 2]?.month || a.firstGradeMonth)}</td>
-              <td style={{ padding: "4px 4px", color: c.textSecondary, fontSize: 11, textAlign: "right" }}>{mn(a.lastGradeMonth)}</td>
+              <td style={{ padding: "4px 4px", color: c.textSecondary, fontSize: 11, textAlign: "right" }}>{t("prevLabel")}</td>
+              <td style={{ padding: "4px 4px", color: c.textSecondary, fontSize: 11, textAlign: "right" }}>{t("currentLabel")}</td>
               <td style={{ padding: "4px 4px", color: c.textSecondary, fontSize: 11, textAlign: "right" }}>{t("changeLabel")}</td>
             </tr>
           </thead>
           <tbody>
-            {comparisonRows.map(([label, prev, curr, delta]) => (
-              <tr key={label} style={{ borderTop: `1px solid ${c.border}` }}>
-                <td style={{ padding: "8px 4px", fontWeight: 600 }}>{label}</td>
-                <td style={{ padding: "8px 4px", textAlign: "right", color: c.textSecondary }}>{prev !== null ? `${prev}%` : t("noAttendanceData")}</td>
-                <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>{curr !== null ? `${curr}%` : t("noAttendanceData")}</td>
-                <td style={{ padding: "8px 4px", textAlign: "right" }}>{(prev !== null && curr !== null) ? <DeltaTag delta={delta} c={c} /> : "—"}</td>
+            {comparisonRows.map(row => (
+              <tr key={row.label} style={{ borderTop: `1px solid ${c.border}` }}>
+                <td style={{ padding: "8px 4px", fontWeight: 600, color: c.textPrimary }}>{row.label}</td>
+                <td style={{ padding: "8px 4px", textAlign: "right", color: c.textSecondary }}>
+                  {row.prevMonth ? `${mn(row.prevMonth)} ` : ""}{row.prev !== null ? `${row.prev}%` : t("noData")}
+                </td>
+                <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700, color: c.textPrimary }}>
+                  {row.currMonth ? `${mn(row.currMonth)} ` : ""}{row.curr !== null ? `${row.curr}%` : t("noData")}
+                </td>
+                <td style={{ padding: "8px 4px", textAlign: "right" }}>{(row.prev !== null && row.curr !== null) ? <DeltaTag delta={row.delta} c={c} /> : "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -151,7 +156,7 @@ export default function Insights({ onOpenPrintReport }) {
         </div>
         {a.subjectTrends.map(s => (
           <div key={s.name} style={{ background: c.surfaceAlt, borderRadius: 10, padding: "12px 14px", marginBottom: 8 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{subj(lang, s.name)}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4, color: c.textPrimary }}>{subj(lang, s.name)}</div>
             <div style={{ fontSize: 12, color: c.textSecondary }}>
               {mn(a.firstGradeMonth)} {s.first}% ───── {mn(a.lastGradeMonth)} {s.last}%
             </div>
@@ -166,7 +171,7 @@ export default function Insights({ onOpenPrintReport }) {
           <TrendLineChart data={a.attByMonth.map(r => ({ month: mn(r.month), pct: r.pct }))} dataKey="pct" xKey="month" domain={[0, 100]} />
           <div style={{ padding: "4px 4px 10px" }}>
             <div style={{ fontSize: 12, color: c.textSecondary, marginBottom: 4 }}>
-              {mn(a.attByMonth[0].month)} {a.attFirst !== null ? `${a.attFirst}%` : t("noAttendanceData")} → {mn(a.lastGradeMonth)} {a.attLast !== null ? `${a.attLast}%` : t("noAttendanceData")}
+              {a.attFirstMonth ? mn(a.attFirstMonth) : ""} {a.attFirst !== null ? `${a.attFirst}%` : t("noAttendanceData")} → {a.attLastMonth ? mn(a.attLastMonth) : ""} {a.attLast !== null ? `${a.attLast}%` : t("noAttendanceData")}
             </div>
             {a.attFirst !== null && a.attLast !== null && <DeltaTag delta={a.attLast - a.attFirst} c={c} />}
           </div>
@@ -176,8 +181,10 @@ export default function Insights({ onOpenPrintReport }) {
       {/* HOMEWORK */}
       <Section title={t("homeworkPerformance")}>
         <div style={{ background: c.surfaceAlt, borderRadius: 10, padding: "12px 12px 4px" }}>
-          {a.hwByMonth.length > 1 && (
+          {a.hwByMonth.length > 1 ? (
             <TrendLineChart data={a.hwByMonth.map(r => ({ month: mn(r.month), pct: r.pct }))} dataKey="pct" xKey="month" domain={[0, 100]} />
+          ) : (
+            <div style={{ textAlign: "center", padding: "20px 0", fontSize: 12, color: c.textSecondary }}>{t("noData")}</div>
           )}
           <div style={{ padding: "10px 4px 10px" }}>
             <Row label={t("hwCompletionLabel")} value={`${a.hwStatsOverall.completionRate}%`} sub={t("assignmentsCompletedOf", { completed: a.hwStatsOverall.completed, total: a.hwStatsOverall.total })} />

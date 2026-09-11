@@ -41,7 +41,7 @@ export default function Attendance() {
 
   return (
     <div style={{ padding: "18px 16px 8px" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>{t("attendanceTitle")}</div>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, color: c.textPrimary }}>{t("attendanceTitle")}</div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <button disabled={monthIdx === 0} onClick={() => setMonthIdx(i => i - 1)} style={{ border: "none", background: "transparent", color: monthIdx === 0 ? c.textSecondary : c.accent, fontSize: 18, opacity: monthIdx === 0 ? 0.4 : 1 }}>‹</button>

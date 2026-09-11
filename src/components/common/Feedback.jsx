@@ -35,7 +35,7 @@ export function BottomSheet({ open, onClose, title, children }) {
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%", maxWidth: 560, margin: "0 auto", maxHeight: "85vh", overflowY: "auto",
-          background: theme.colors.surface, borderRadius: "20px 20px 0 0",
+          background: theme.colors.surface, color: theme.colors.textPrimary, borderRadius: "20px 20px 0 0",
           padding: `18px 20px calc(24px + env(safe-area-inset-bottom))`,
         }}
       >
@@ -52,7 +52,7 @@ export function ConfirmDialog({ open, title, body, confirmLabel, cancelLabel, on
   if (!open) return null;
   return (
     <div onClick={onCancel} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 150, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 360, background: theme.colors.surface, borderRadius: radius.lg, padding: 20 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 360, background: theme.colors.surface, color: theme.colors.textPrimary, borderRadius: radius.lg, padding: 20 }}>
         <div style={{ fontFamily: font.family, fontSize: font.size.md, fontWeight: 800, color: theme.colors.textPrimary, marginBottom: 8 }}>{title}</div>
         <div style={{ fontFamily: font.family, fontSize: font.size.sm, color: theme.colors.textSecondary, lineHeight: 1.5, marginBottom: 18 }}>{body}</div>
         <div style={{ display: "flex", gap: 8 }}>

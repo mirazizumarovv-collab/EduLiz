@@ -59,14 +59,14 @@ export default function Chat() {
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div>
       <div style={{ padding: "18px 16px 8px" }}>
-        <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 2 }}>{t("navChat")}</div>
+        <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 2, color: c.textPrimary }}>{t("navChat")}</div>
         <div style={{ fontSize: 12, color: c.textSecondary }}>{t("chatSubtitle")}</div>
         <div style={{ fontSize: 10.5, color: c.textSecondary, marginTop: 4 }}>{t("replyTimeNote", { hours: CENTER_REPLY_TIME_HOURS })}</div>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "0 16px" }}>
+      <div style={{ padding: "0 16px", minHeight: "50vh" }}>
         {list.length === 0 ? (
           <EmptyState icon="💬" title={t("noMessages")} />
         ) : renderItems.map((item, i) => {
@@ -83,7 +83,7 @@ export default function Chat() {
           return (
             <div key={m.id} style={{ display: "flex", justifyContent: m.from === "parent" ? "flex-end" : "flex-start", marginBottom: item.showTime ? 8 : 3 }}>
               <div style={{ maxWidth: "78%", padding: "9px 12px", borderRadius: 12, background: m.from === "parent" ? c.surfaceStrong : c.surfaceAlt, color: m.from === "parent" ? c.onAccent : c.textPrimary }}>
-                <div style={{ fontSize: 13 }}>{m.text}</div>
+                <div style={{ fontSize: 13 }}>{m.textKey ? t(m.textKey, m.vars) : m.text}</div>
                 {item.showTime && (
                   <div style={{ fontSize: 10, opacity: 0.7, marginTop: 3 }}>
                     {formatTime(m.time, lang)}
@@ -97,7 +97,7 @@ export default function Chat() {
         })}
       </div>
 
-      <div style={{ display: "flex", gap: 8, padding: "10px 16px calc(14px + env(safe-area-inset-bottom))", borderTop: `1px solid ${c.border}` }}>
+      <div style={{ position: "sticky", bottom: 0, display: "flex", gap: 8, padding: "10px 16px calc(14px + env(safe-area-inset-bottom))", background: c.surface, borderTop: `1px solid ${c.border}` }}>
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

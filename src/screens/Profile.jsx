@@ -20,7 +20,7 @@ export default function Profile({ onNavigate }) {
 
   return (
     <div style={{ padding: "18px 16px 8px" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>{t("profile")}</div>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 16, color: c.textPrimary }}>{t("profile")}</div>
 
       <Section title={t("sectionAccount")}>
         <Row label={t("profile")} value="Dilnoza A." />

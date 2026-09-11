@@ -23,7 +23,7 @@ export default function Payments() {
 
   return (
     <div style={{ padding: "18px 16px 8px" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 14 }}>{t("paymentsTitle")}</div>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 14, color: c.textPrimary }}>{t("paymentsTitle")}</div>
 
       <div style={{ background: c.surfaceStrong, borderRadius: 14, padding: 18, marginBottom: 16 }}>
         <div style={{ color: c.onAccent, opacity: 0.8, fontSize: 11 }}>{t(STATUS_KEY[data.status])}</div>

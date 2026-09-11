@@ -17,6 +17,16 @@ export default function Registration({ onRegister }) {
     onRegister(trimmed);
   };
 
+  const handlePhoneChange = (e) => {
+    let val = e.target.value;
+    if (!val.startsWith("+998")) {
+      const digitsOnly = val.replace(/\D/g, "");
+      val = digitsOnly.length === 0 ? "" : `+998 ${digitsOnly}`;
+    }
+    setPhone(val);
+    if (error) setError("");
+  };
+
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 28px" }}>
       <div style={{ textAlign: "center", marginBottom: 30 }}>
@@ -32,7 +42,8 @@ export default function Registration({ onRegister }) {
       <label style={{ fontSize: 11, color: c.textSecondary, marginBottom: 4 }}>{t("phoneNumber")}</label>
       <input
         value={phone}
-        onChange={(e) => { setPhone(e.target.value); if (error) setError(""); }}
+        onChange={handlePhoneChange}
+        inputMode="numeric"
         placeholder="+998 90 123 45 67"
         style={{ border: `1px solid ${error ? c.danger : c.border}`, borderRadius: 10, padding: "12px 14px", fontSize: 14, background: c.surfaceAlt, color: c.textPrimary, marginBottom: error ? 6 : 18, outline: "none", boxSizing: "border-box" }}
       />

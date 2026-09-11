@@ -12,13 +12,14 @@ const NAV_GROUPS = [
 ];
 
 export default function More({ onNavigate }) {
-  const { t, navItems } = useApp();
+  const { t, navItems, theme } = useApp();
+  const c = theme.colors;
   const hiddenIds = new Set(Object.keys(NAV_POOL).filter(id => id !== "dashboard" && !navItems.includes(id)));
   const anyHidden = hiddenIds.size > 0;
 
   return (
     <div style={{ padding: "18px 16px 8px" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>{t("navMore")}</div>
+      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 16, color: c.textPrimary }}>{t("navMore")}</div>
       {!anyHidden ? (
         <EmptyState icon="✅" title={t("allPinned")} />
       ) : (
