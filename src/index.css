@@ -1,0 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap');
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, select { font-family: inherit; }
+input:focus, button:focus { outline: 2px solid #3A6EA5; outline-offset: 1px; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+/* Responsive base font scaling: comfortably readable on small phones,
+   without becoming oversized on tablets/desktop. */
+html { font-size: 15px; }
+@media (min-width: 380px) { html { font-size: 16px; } }
+@media (min-width: 900px) { html { font-size: 16px; } }
