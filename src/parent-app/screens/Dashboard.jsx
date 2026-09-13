@@ -27,13 +27,13 @@ export default function Dashboard({ onNavigate }) {
   if (error) return <ErrorState t={t} message={t("failedToLoad")} onRetry={() => { attendanceQ.reload(); gradesQ.reload(); homeworkQ.reload(); }} />;
 
   const monthDays = attendanceQ.data[CURRENT_MONTH];
-  const today = monthDays[monthDays.length - 1];
+  const today = monthDays.length > 0 ? monthDays[monthDays.length - 1] : null;
   const rate = attendanceRate(monthDays);
   const streak = currentPresentStreak(monthDays);
   const lateRecent = recentLateCount(monthDays);
   const subjects = gradesQ.data;
-  const topSubject = subjects[0];
-  const overallAvg = Math.round(subjects.reduce((a, s) => a + s.score, 0) / subjects.length);
+  const topSubject = subjects.length > 0 ? subjects[0] : null;
+  const overallAvg = subjects.length > 0 ? Math.round(subjects.reduce((a, s) => a + s.score, 0) / subjects.length) : null;
   const pendingHomework = homeworkQ.data.pending;
   const unreadCount = (notifQ.data || []).filter(n =>
     notifPrefs[n.category] && !deletedNotifIds.has(n.id) && !n.read && !readNotifIds.has(n.id)
@@ -43,7 +43,7 @@ export default function Dashboard({ onNavigate }) {
   // Alerts are gathered once so we can show a calm "all clear" state when
   // there's genuinely nothing urgent, instead of an empty section.
   const alerts = [];
-  if (today.status === "A") {
+  if (today?.status === "A") {
     alerts.push({ Icon: AlertTriangle, tone: "warn", label: t("alertAbsentToday", { name: selectedStudent.name }), onClick: () => onNavigate("attendance") });
   }
   if (payment.status !== "paid") {
@@ -56,12 +56,14 @@ export default function Dashboard({ onNavigate }) {
   }
 
   // Recent activity derived from real data (not invented) — most recent
-  // resolved homework item and the most recent grade entry.
+  // resolved homework item and the most recent grade entry. Every piece is
+  // conditional since a freshly-connected student may genuinely have none
+  // of these yet (no teacher has entered anything).
   const recentHw = [...homeworkQ.data.history].reverse()[0];
   const activity = [];
   if (recentHw) activity.push({ icon: recentHw.status === "completed" ? "📝" : "🔴", text: t("activityHwDone", { title: recentHw.title }) });
-  activity.push({ icon: "📊", text: t("activityNewGrade", { subject: subj(lang, topSubject.name), score: topSubject.score }) });
-  if (today.status !== "A") activity.push({ icon: "✓", text: t("activityAttended", { subject: subj(lang, today.subject) }) });
+  if (topSubject) activity.push({ icon: "📊", text: t("activityNewGrade", { subject: subj(lang, topSubject.name), score: topSubject.score }) });
+  if (today && today.status !== "A") activity.push({ icon: "✓", text: t("activityAttended", { subject: subj(lang, today.subject) }) });
 
   return (
     <div style={{ padding: "18px 16px 8px" }}>
@@ -81,21 +83,31 @@ export default function Dashboard({ onNavigate }) {
       {/* CHILD OVERVIEW — compact glance, not full rows */}
       <Section title={t("childOverview")}>
         <div style={{ display: "flex", gap: 8 }}>
-          <StatPill value={`${rate}%`} label={t("attendanceRate")} color={scoreColor(theme, rate, [75, 90])} />
-          <StatPill value={`${overallAvg}%`} label={t("currentAverage")} color={scoreColor(theme, overallAvg)} />
+          <StatPill value={rate !== null ? `${rate}%` : "—"} label={t("attendanceRate")} color={rate !== null ? scoreColor(theme, rate, [75, 90]) : theme.colors.textSecondary} />
+          <StatPill value={overallAvg !== null ? `${overallAvg}%` : "—"} label={t("currentAverage")} color={overallAvg !== null ? scoreColor(theme, overallAvg) : theme.colors.textSecondary} />
           <StatPill value={unreadCount} label={t("navNotifications")} />
         </div>
       </Section>
 
       {/* RECENT ACTIVITY */}
       <Section title={t("recentActivity")}>
-        {activity.map((a, i) => <Row key={i} label={`${a.icon}  ${a.text}`} />)}
+        {activity.length === 0 ? (
+          <div style={{ fontSize: 12, color: c.textSecondary, padding: "4px 2px" }}>{t("noRecentActivity")}</div>
+        ) : (
+          activity.map((a, i) => <Row key={i} label={`${a.icon}  ${a.text}`} />)
+        )}
       </Section>
 
       {/* ACADEMIC PROGRESS */}
       <Section title={t("academicProgress")}>
-        <Row label={t("currentAverage")} value={`${overallAvg}%`} valueColor={scoreColor(theme, overallAvg)} onClick={() => onNavigate("grades")} />
-        <Row label={t("latestResult")} value={`${topSubject.score}%`} valueColor={scoreColor(theme, topSubject.score)} sub={subj(lang, topSubject.name)} onClick={() => onNavigate("grades")} />
+        {overallAvg !== null && (
+          <Row label={t("currentAverage")} value={`${overallAvg}%`} valueColor={scoreColor(theme, overallAvg)} onClick={() => onNavigate("grades")} />
+        )}
+        {topSubject ? (
+          <Row label={t("latestResult")} value={`${topSubject.score}%`} valueColor={scoreColor(theme, topSubject.score)} sub={subj(lang, topSubject.name)} onClick={() => onNavigate("grades")} />
+        ) : (
+          <Row label={t("noGradesYet")} onClick={() => onNavigate("grades")} />
+        )}
       </Section>
 
       {/* QUICK ACTIONS */}

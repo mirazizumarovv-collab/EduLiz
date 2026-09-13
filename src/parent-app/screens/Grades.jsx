@@ -20,7 +20,7 @@ export default function Grades() {
 
   if (loading) return <div style={{ padding: 18 }}><LoadingSkeleton rows={5} /></div>;
   if (error) return <ErrorState t={t} message={t("failedToLoad")} onRetry={reload} />;
-  if (!data || data.length === 0) return <EmptyState icon="📊" title={t("noHomework")} />;
+  if (!data || data.length === 0) return <EmptyState icon="📊" title={t("noGradesYet")} />;
 
   const subjects = data.map(computeSubjectDerived);
   const allAvailableMonths = subjects[0].monthly.map(m => m.month);

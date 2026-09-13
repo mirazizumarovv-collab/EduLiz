@@ -16,6 +16,15 @@ export function PrintableReport({ student, lang, t, onClose }) {
   const homework = getHomework(student.id);
   const mn = (key) => MONTH_NAMES[lang][key] || key;
 
+  if (grades.length === 0) {
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "#fff", zIndex: 200, padding: 24, overflowY: "auto" }}>
+        <button onClick={onClose} style={{ border: "none", background: "#EAF1F8", color: "#142238", borderRadius: 8, padding: "8px 14px", fontSize: 13, cursor: "pointer", marginBottom: 20 }}>← {t("back")}</button>
+        <div style={{ fontSize: 15, color: "#6C82A0" }}>{t("insightsNeedGrades")}</div>
+      </div>
+    );
+  }
+
   const a = computeParentAnalytics({ studentId: student.id, grades, attendanceData, homework });
 
   // One shared dataset — every subject reads its score from the SAME row per

@@ -194,4 +194,6 @@ export default {
   verifyCode: "Kodni tasdiqlash",
   setNewPinBody: "Yangi 4 xonali PIN-kod o'ylab toping.",
   saveNewPin: "Yangi PIN-kodni saqlash",
+  noRecentActivity: "Hali hech qanday faoliyat yo'q",
+  insightsNeedGrades: "Tahlil uchun kamida bitta baho kerak. O'qituvchi baho qo'ygandan keyin bu yerda ko'rinadi.",
 };

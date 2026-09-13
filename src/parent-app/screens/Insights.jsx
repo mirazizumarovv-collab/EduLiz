@@ -33,6 +33,16 @@ export default function Insights({ onOpenPrintReport }) {
   if (loading) return <div style={{ padding: 18 }}><LoadingSkeleton rows={6} /></div>;
   if (error) return <ErrorState t={t} message={t("failedToLoad")} onRetry={() => { attendanceQ.reload(); gradesQ.reload(); homeworkQ.reload(); }} />;
 
+  if (gradesQ.data.length === 0) {
+    return (
+      <div style={{ padding: "18px 16px 8px" }}>
+        <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 2, color: c.textPrimary }}>{t("overallProgress")}</div>
+        <div style={{ fontSize: 12.5, color: c.textSecondary, marginBottom: 20 }}>{selectedStudent.name}</div>
+        <div style={{ fontSize: 13, color: c.textSecondary }}>{t("insightsNeedGrades")}</div>
+      </div>
+    );
+  }
+
   const grades = gradesQ.data.map(computeSubjectDerived);
   const a = computeParentAnalytics({ studentId: selectedStudent.id, grades, attendanceData: attendanceQ.data, homework: homeworkQ.data });
   const mn = (key) => MONTH_NAMES[lang][key] || key;

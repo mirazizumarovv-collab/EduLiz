@@ -1,6 +1,7 @@
 import { MONTHS } from "../constants/months.js";
 
 export function attendanceRate(monthDays) {
+  if (monthDays.length === 0) return null;
   const attended = monthDays.filter(d => d.status === "P" || d.status === "L").length;
   return Math.round((attended / monthDays.length) * 100);
 }

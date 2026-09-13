@@ -211,4 +211,6 @@ export default {
   verifyCode: "Verify code",
   setNewPinBody: "Choose a new 4-digit PIN.",
   saveNewPin: "Save new PIN",
+  noRecentActivity: "No recent activity yet",
+  insightsNeedGrades: "Insights need at least one grade entry. This will fill in once a teacher enters a score.",
 };
