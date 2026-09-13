@@ -6,19 +6,17 @@ body {
   font-family: 'Manrope', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
-button, input, select { font-family: inherit; }
-input:focus, button:focus { outline: 2px solid #3A6EA5; outline-offset: 1px; }
+button, input, select, textarea { font-family: inherit; }
+input:focus, button:focus, textarea:focus, select:focus { outline: 2px solid #3A6EA5; outline-offset: 1px; }
+table { border-collapse: collapse; }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.55; }
 }
 
-/* Responsive base font scaling: comfortably readable on small phones,
-   without becoming oversized on tablets/desktop. */
 html { font-size: 15px; }
 @media (min-width: 380px) { html { font-size: 16px; } }
-@media (min-width: 900px) { html { font-size: 16px; } }
 
 /* Native <input type="time"> renders its own browser/OS clock icon that
    ignores normal CSS `color` — it's a fixed black SVG regardless of theme.

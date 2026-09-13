@@ -1,122 +1,86 @@
-import { MONTHS } from "../constants/months.js";
-
-export function attendanceRate(monthDays) {
-  const attended = monthDays.filter(d => d.status === "P" || d.status === "L").length;
-  return Math.round((attended / monthDays.length) * 100);
+// --- Attendance -------------------------------------------------------
+// Attendance is stored as attendanceRecords[groupId][dateStr][studentId].
+// For a given student, we scan every date recorded for THEIR group.
+export function getStudentAttendanceDays(studentId, groupId, attendanceRecords) {
+  const byDate = attendanceRecords[groupId] || {};
+  return Object.entries(byDate)
+    .filter(([, entries]) => entries[studentId])
+    .map(([date, entries]) => ({ date, ...entries[studentId] }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-export function longestPresentStreak(allMonthsDayData) {
-  const allDays = MONTHS.flatMap(m => allMonthsDayData[m] || []);
-  let longest = 0, run = 0;
-  allDays.forEach(d => {
-    run = (d.status === "P" || d.status === "L") ? run + 1 : 0;
-    longest = Math.max(longest, run);
+// Present OR late both count as "attended" — only absent doesn't.
+export function attendanceRateFromDays(days) {
+  if (days.length === 0) return null;
+  const attended = days.filter(d => d.status === "P" || d.status === "L").length;
+  return Math.round((attended / days.length) * 100);
+}
+
+export function monthKeyFromDate(dateStr) {
+  const idx = Number(dateStr.slice(5, 7)) - 1; // "2026-09-08" -> month index 8 -> Sep
+  return MONTHS_FULL[idx];
+}
+const MONTHS_FULL = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// --- Grades -------------------------------------------------------------
+// gradesRecords[studentId] = [{ id, subject, title, score, maxScore, date }]
+export function getStudentGrades(studentId, gradesRecords) {
+  return gradesRecords[studentId] || [];
+}
+
+export function groupBySubject(entries) {
+  const bySubject = {};
+  entries.forEach(e => {
+    if (!bySubject[e.subject]) bySubject[e.subject] = [];
+    bySubject[e.subject].push(e);
   });
-  return longest;
+  return bySubject;
 }
 
-export function currentPresentStreak(monthDays) {
-  let streak = 0;
-  for (let i = monthDays.length - 1; i >= 0; i--) {
-    if (monthDays[i].status === "P" || monthDays[i].status === "L") streak++; else break;
-  }
-  return streak;
+// Class average for one specific assessment (same title+subject), across
+// every student in the group who has a recorded score for it — a real
+// benchmark computed from real classmates, not a synthetic number.
+export function classAverageForAssessment(title, subject, groupStudentIds, gradesRecords) {
+  const scores = [];
+  groupStudentIds.forEach(sid => {
+    const entry = (gradesRecords[sid] || []).find(e => e.title === title && e.subject === subject);
+    if (entry) scores.push(Math.round((entry.score / entry.maxScore) * 100));
+  });
+  if (scores.length === 0) return null;
+  return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
 }
 
-export function recentLateCount(monthDays, windowDays = 14) {
-  return monthDays.slice(-windowDays).filter(d => d.status === "L").length;
+// --- Homework -------------------------------------------------------------
+// homeworkRecords[groupId] = [{ id, title, dueDate, createdDate }]
+// NOTE: this v1 has no per-student submission tracking yet — every student
+// in a group sees the same assigned list. "Completed" status isn't tracked
+// per student here (a known, stated simplification — see README).
+export function getGroupHomework(groupId, homeworkRecords) {
+  return (homeworkRecords[groupId] || []).slice().sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 }
 
-export function homeworkStats(pending, history) {
-  const total = pending.length + history.length;
-  if (total === 0) return { completionRate: 0, onTimeRate: 0, total: 0, completed: 0, pending: 0, overdue: 0 };
-  const completed = history.filter(h => h.status === "completed").length;
-  const overdue = history.filter(h => h.status === "overdue").length;
-  // Genuine on-time rate: among resolved assignments (completed + overdue),
-  // how many were actually done by their deadline. A completed item counts
-  // as on-time unless explicitly flagged `onTime: false` (submitted late);
-  // an overdue item is never on-time by definition.
-  const onTimeCount = history.filter(h => h.status === "completed" && h.onTime !== false).length;
-  return {
-    completionRate: Math.round((completed / total) * 100),
-    onTimeRate: history.length > 0 ? Math.round((onTimeCount / history.length) * 100) : 0,
-    total, completed, pending: pending.length, overdue,
-  };
+// A student's status for one homework item: 'completed' if explicitly
+// marked, otherwise 'overdue' or 'pending' depending on the due date —
+// mirrors the same not-yet-marked distinction used for attendance.
+export function getHomeworkStatusForStudent(homeworkItem, studentId, homeworkSubmissions, currentDateStr) {
+  const isDone = !!(homeworkSubmissions[homeworkItem.id] || {})[studentId];
+  if (isDone) return "completed";
+  return homeworkItem.dueDate < currentDateStr ? "overdue" : "pending";
 }
 
-export function trendArrow(delta) {
-  if (delta > 0) return { symbol: "▲", label: `+${delta}`, direction: "up" };
-  if (delta < 0) return { symbol: "▼", label: `${delta}`, direction: "down" };
-  return { symbol: "→", label: "0", direction: "flat" };
+export function homeworkCompletionStats(groupHomework, studentId, homeworkSubmissions, currentDateStr) {
+  let completed = 0, overdue = 0, pending = 0;
+  groupHomework.forEach(hw => {
+    const status = getHomeworkStatusForStudent(hw, studentId, homeworkSubmissions, currentDateStr);
+    if (status === "completed") completed++;
+    else if (status === "overdue") overdue++;
+    else pending++;
+  });
+  const total = groupHomework.length;
+  return { total, completed, overdue, pending, completionRate: total > 0 ? Math.round((completed / total) * 100) : 0 };
 }
 
-// PRIVACY: this is the only comparison surface in the whole app. It never
-// receives or exposes other students' names or individual scores — only a
-// single anonymous aggregate (classAvg) that the center supplies per subject.
-// Returns a bucketed, non-numeric-rank label per the "no exact ranking" rule.
-export function groupComparisonLabel(childScore, classAvg) {
-  const diff = childScore - classAvg;
-  const pctDiff = Math.round((Math.abs(diff) / classAvg) * 100);
-  if (Math.abs(diff) < 2) return { key: "atGroupAverage", pct: 0 };
-  if (diff > 0) return { key: "aboveGroupAverage", pct: pctDiff };
-  return { key: "belowGroupAverage", pct: pctDiff };
-}
-
-export function monthOverMonthDelta(monthlySeries) {
-  if (monthlySeries.length < 2) return 0;
-  return monthlySeries[monthlySeries.length - 1].score - monthlySeries[monthlySeries.length - 2].score;
-}
-
-export function overallGrowth(monthlySeries) {
-  const start = monthlySeries[0].score;
-  const now = monthlySeries[monthlySeries.length - 1].score;
-  return { start, now, deltaPct: Math.round(((now - start) / start) * 100) };
-}
-
-// Tiered good/medium/bad color for any percentage-style result. Always pair
-// with a text label or icon elsewhere — never rely on color alone.
-export function scoreColor(theme, value, thresholds = [60, 80]) {
-  const c = theme.colors;
-  if (value >= thresholds[1]) return c.good;
-  if (value >= thresholds[0]) return c.medium;
-  return c.bad;
-}
-
-// Days until (positive) or past (negative) a payment deadline, using the
-// app's fixed demo "today" rather than the real device clock — swap
-// CURRENT_DATE_STR for a live value once this is wired to a real backend.
-export function daysUntilPaymentDue(deadlineISO, currentDateStr) {
-  const oneDay = 86400000;
-  return Math.round((new Date(deadlineISO) - new Date(currentDateStr)) / oneDay);
-}
-
-// Quiet hours suppress alert-style UI and non-critical notifications during
-// the configured window, handling overnight ranges like 22:00 -> 07:00.
-export function isQuietHoursNow(quietHours, currentTimeStr) {
-  if (!quietHours.enabled) return false;
-  const toMinutes = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
-  const now = toMinutes(currentTimeStr);
-  const start = toMinutes(quietHours.start);
-  const end = toMinutes(quietHours.end);
-  if (start === end) return false;
-  return start < end ? (now >= start && now < end) : (now >= start || now < end);
-}
-const QUIET_HOURS_CRITICAL_CATEGORIES = ["attendance"];
-export function isSuppressedByQuietHours(category, quietHours, currentTimeStr) {
-  return isQuietHoursNow(quietHours, currentTimeStr) && !QUIET_HOURS_CRITICAL_CATEGORIES.includes(category);
-}
-
-// The ONE place that decides whether a notification counts toward any
-// "unread" badge/count shown anywhere in the app (header bell, child
-// switcher, etc.) — respects category preferences, deletion, read state,
-// AND quiet hours. Any new unread-count display should call this instead
-// of re-deriving the same filter, so quiet hours can never be forgotten
-// in one spot while working in another.
-export function getAlertableUnreadCount(notifications, notifPrefs, quietHours, currentTimeStr, readNotifIds, deletedNotifIds) {
-  return notifications.filter(n =>
-    notifPrefs[n.category] &&
-    !deletedNotifIds.has(n.id) &&
-    !n.read && !readNotifIds.has(n.id) &&
-    !isSuppressedByQuietHours(n.category, quietHours, currentTimeStr)
-  ).length;
+// --- Payments -------------------------------------------------------------
+export function getPaymentStatus(studentId, paymentsStatus) {
+  return paymentsStatus[studentId] || "pending";
 }

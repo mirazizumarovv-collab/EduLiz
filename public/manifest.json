@@ -1,7 +1,7 @@
 {
-  "name": "Registon Study Center — Parent Portal",
-  "short_name": "Parent Portal",
-  "description": "Track your child's attendance, grades, homework, and payments.",
+  "name": "EduLiz — Registon Study Center",
+  "short_name": "EduLiz",
+  "description": "One platform for administrators, teachers, and parents.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

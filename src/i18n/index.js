@@ -1,8 +1,15 @@
 import en from "./en.js";
 import ru from "./ru.js";
 import uz from "./uz.js";
+import parentEn from "../parent-app/i18n/en.js";
+import parentRu from "../parent-app/i18n/ru.js";
+import parentUz from "../parent-app/i18n/uz.js";
 
-export const dictionaries = { en, ru, uz };
+export const dictionaries = {
+  en: { ...en, ...parentEn },
+  ru: { ...ru, ...parentRu },
+  uz: { ...uz, ...parentUz },
+};
 export const SUPPORTED_LANGUAGES = [
   { id: "uz", label: "O'zbekcha" },
   { id: "ru", label: "Русский" },
