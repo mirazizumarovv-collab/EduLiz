@@ -3,7 +3,7 @@ import { GraduationCap, Building2, Users, Headset } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
 
 export default function RoleSelect() {
-  const { t, theme, setRole, teachers, guardians, setCurrentTeacherId, setCurrentGuardianPhone } = useApp();
+  const { t, theme, setRole, teachers, setCurrentTeacherId } = useApp();
   const c = theme.colors;
   const [pendingRole, setPendingRole] = useState(null);
 
@@ -14,28 +14,23 @@ export default function RoleSelect() {
     { key: "operator", Icon: Headset, label: t("roleOperator"), desc: t("roleOperatorDesc") },
   ];
 
-  if (pendingRole === "teacher" || pendingRole === "parent") {
-    const list = pendingRole === "teacher" ? teachers : guardians;
+  if (pendingRole === "teacher") {
     return (
       <div style={{ minHeight: "100dvh", background: theme.colors.background, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: 24 }}>
         <div style={{ width: "100%", maxWidth: 380, background: c.surface, borderRadius: 16, padding: 24 }}>
           <div style={{ fontSize: 17, fontWeight: 800, color: c.textPrimary, marginBottom: 4 }}>{t("selectYourself")}</div>
-          <div style={{ fontSize: 12.5, color: c.textSecondary, marginBottom: 18 }}>{pendingRole === "teacher" ? t("roleTeacher") : t("roleParent")}</div>
-          {list.map(item => (
+          <div style={{ fontSize: 12.5, color: c.textSecondary, marginBottom: 18 }}>{t("roleTeacher")}</div>
+          {teachers.map(item => (
             <button
-              key={pendingRole === "teacher" ? item.id : item.phone}
-              onClick={() => {
-                if (pendingRole === "teacher") { setCurrentTeacherId(item.id); setRole("teacher"); }
-                else { setCurrentGuardianPhone(item.phone); setRole("parent"); }
-              }}
+              key={item.id}
+              onClick={() => { setCurrentTeacherId(item.id); setRole("teacher"); }}
               style={{ width: "100%", textAlign: "left", border: "none", background: c.surfaceAlt, borderRadius: 10, padding: "13px 16px", marginBottom: 8, cursor: "pointer" }}
             >
               <div style={{ fontSize: 14, fontWeight: 700, color: c.textPrimary }}>{item.name}</div>
-              {pendingRole === "teacher" && <div style={{ fontSize: 11.5, color: c.textSecondary, marginTop: 2 }}>{item.subjects.join(", ")}</div>}
-              {pendingRole === "parent" && <div style={{ fontSize: 11.5, color: c.textSecondary, marginTop: 2 }}>{item.phone}</div>}
+              <div style={{ fontSize: 11.5, color: c.textSecondary, marginTop: 2 }}>{item.subjects.join(", ")}</div>
             </button>
           ))}
-          {list.length === 0 && <div style={{ fontSize: 13, color: c.textSecondary }}>—</div>}
+          {teachers.length === 0 && <div style={{ fontSize: 13, color: c.textSecondary }}>—</div>}
           <button onClick={() => setPendingRole(null)} style={{ border: "none", background: "transparent", color: c.textSecondary, fontSize: 12.5, marginTop: 8, cursor: "pointer" }}>
             ← {t("back")}
           </button>
@@ -57,7 +52,7 @@ export default function RoleSelect() {
         {roleCards.map(r => (
           <button
             key={r.key}
-            onClick={() => ((r.key === "teacher" || r.key === "parent") ? setPendingRole(r.key) : setRole(r.key))}
+            onClick={() => (r.key === "teacher" ? setPendingRole(r.key) : setRole(r.key))}
             style={{
               display: "flex", alignItems: "center", gap: 14, width: "100%", textAlign: "left",
               border: "none", background: c.surface, borderRadius: 14, padding: "16px 18px", cursor: "pointer",
