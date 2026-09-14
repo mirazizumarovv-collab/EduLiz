@@ -196,4 +196,5 @@ export default {
   saveNewPin: "Сохранить новый PIN",
   noRecentActivity: "Пока нет активности",
   insightsNeedGrades: "Для аналитики нужна хотя бы одна оценка. Появится здесь после того, как учитель выставит оценку.",
+  noAssessmentThisMonth: "В этом месяце оценок не было",
 };

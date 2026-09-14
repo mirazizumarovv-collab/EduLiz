@@ -196,4 +196,5 @@ export default {
   saveNewPin: "Yangi PIN-kodni saqlash",
   noRecentActivity: "Hali hech qanday faoliyat yo'q",
   insightsNeedGrades: "Tahlil uchun kamida bitta baho kerak. O'qituvchi baho qo'ygandan keyin bu yerda ko'rinadi.",
+  noAssessmentThisMonth: "Bu oyda baholash bo'lmagan",
 };

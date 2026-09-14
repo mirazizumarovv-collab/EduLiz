@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Menu, X, LogOut, Sun, Moon } from "lucide-react";
+import { Menu, X, LogOut, Sun, Moon, ArrowLeft } from "lucide-react";
 import { useApp } from "../../context/AppContext.jsx";
 
 export function AppShell({ navItems, activeScreen, onNavigate, roleLabel, roleName, children }) {
@@ -82,6 +82,15 @@ export function AppShell({ navItems, activeScreen, onNavigate, roleLabel, roleNa
       )}
 
       <div className="staff-content" style={{ flex: 1, minWidth: 0, padding: "72px 20px 24px", maxWidth: 1100, margin: "0 auto", width: "100%" }}>
+        {activeScreen !== "dashboard" && (
+          <button
+            onClick={() => onNavigate("dashboard")}
+            aria-label={t("back")}
+            style={{ display: "flex", alignItems: "center", gap: 6, border: "none", background: "transparent", color: c.textSecondary, cursor: "pointer", padding: "0 0 14px", fontSize: 13, fontWeight: 600 }}
+          >
+            <ArrowLeft size={17} /> {t("navDashboard")}
+          </button>
+        )}
         {children}
       </div>
 

@@ -5,10 +5,12 @@ const MONTH_ABBREV = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "S
 const monthOf = (dateStr) => MONTH_ABBREV[Number(dateStr.slice(5, 7)) - 1];
 
 // Builds one subject's full Mar–Sep monthly series from real assessment
-// entries. Months with no assessment that subject carry forward the last
-// known percentage (a defensible way to show a trend line without ever
-// inventing a school event that didn't happen) rather than breaking the
-// downstream monthly-comparison math with gaps.
+// entries. The chart-friendly `score` carries the last known percentage
+// forward into months with no assessment (so a trend line doesn't fake a
+// dip to zero) — but each row also carries `real: false` for those months,
+// so any UI showing "what happened this specific month" can tell a genuine
+// assessment apart from a carried-forward value and never misattribute a
+// later month's grade to an earlier one.
 function buildMonthlySeries(entries) {
   const byMonth = {};
   entries.forEach(e => {
@@ -18,17 +20,17 @@ function buildMonthlySeries(entries) {
   });
   let carry = null;
   const monthly = MONTHS.map(m => {
-    if (byMonth[m] !== undefined) carry = byMonth[m];
-    return { month: m, score: carry ?? byMonth[m] ?? 0 };
+    const isReal = byMonth[m] !== undefined;
+    if (isReal) carry = byMonth[m];
+    return { month: m, score: carry ?? byMonth[m] ?? 0, real: isReal };
   });
   // Back-fill leading months (before the first real assessment) with the
-  // first real score, so an early trend doesn't show a fake climb from 0.
-  const firstReal = monthly.find(m => m.score !== 0 || byMonth[m.month] !== undefined);
+  // first real score for chart continuity only — still marked `real: false`.
+  const firstReal = monthly.find(m => m.real);
   if (firstReal) {
-    let backfilling = true;
     for (const row of monthly) {
-      if (byMonth[row.month] !== undefined) backfilling = false;
-      if (backfilling) row.score = firstReal.score;
+      if (row.real) break;
+      row.score = firstReal.score;
     }
   }
   return monthly;
@@ -76,8 +78,10 @@ export function getGrades(studentId) {
 
 export function computeSubjectDerived(subject) {
   const monthly = subject.monthly;
-  const best = monthly.reduce((a, b) => (b.score > a.score ? b : a));
-  const worst = monthly.reduce((a, b) => (b.score < a.score ? b : a));
+  const realMonths = monthly.filter(m => m.real);
+  const pool = realMonths.length > 0 ? realMonths : monthly;
+  const best = pool.reduce((a, b) => (b.score > a.score ? b : a));
+  const worst = pool.reduce((a, b) => (b.score < a.score ? b : a));
   const monthTrend = monthly.length > 1 ? monthly[monthly.length - 1].score - monthly[monthly.length - 2].score : 0;
   const weekTrend = subject.weeklyTrend.length > 1
     ? subject.weeklyTrend[subject.weeklyTrend.length - 1].score - subject.weeklyTrend[subject.weeklyTrend.length - 2].score

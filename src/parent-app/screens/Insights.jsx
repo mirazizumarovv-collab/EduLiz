@@ -168,7 +168,7 @@ export default function Insights({ onOpenPrintReport }) {
           <div key={s.name} style={{ background: c.surfaceAlt, borderRadius: 10, padding: "12px 14px", marginBottom: 8 }}>
             <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4, color: c.textPrimary }}>{subj(lang, s.name)}</div>
             <div style={{ fontSize: 12, color: c.textSecondary }}>
-              {mn(a.firstGradeMonth)} {s.first}% ───── {mn(a.lastGradeMonth)} {s.last}%
+              {mn(s.firstMonth)} {s.first}% ───── {mn(a.lastGradeMonth)} {s.last}%
             </div>
             <DeltaTag delta={s.delta} c={c} />
           </div>

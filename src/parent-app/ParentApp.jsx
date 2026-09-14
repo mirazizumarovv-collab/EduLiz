@@ -175,7 +175,7 @@ export default function ParentApp() {
   const {
     screen, setScreen, locked, toast, registered, setRegistered, setParentPhone,
     selectedStudent, notifPrefs, quietHours, readNotifIds, deletedNotifIds, lang, t,
-    onboarded, setOnboarded,
+    onboarded, setOnboarded, navItems,
   } = useApp();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [printReportOpen, setPrintReportOpen] = useState(false);
@@ -195,6 +195,7 @@ export default function ParentApp() {
 
   const ScreenComponent = SCREEN_MAP[screen] || Dashboard;
   const hasUnreadNotifications = getAlertableUnreadCount(getNotifications(selectedStudent.id), notifPrefs, quietHours, CURRENT_TIME_STR, readNotifIds, deletedNotifIds) > 0;
+  const isTopLevelScreen = navItems.includes(screen) || screen === "dashboard";
 
   return (
     <AppShell
@@ -203,6 +204,8 @@ export default function ParentApp() {
           onOpenSwitcher={() => setSwitcherOpen(true)}
           onOpenNotifications={() => setScreen("notifications")}
           hasUnreadNotifications={hasUnreadNotifications}
+          showBack={!isTopLevelScreen}
+          onBack={() => setScreen("dashboard")}
         />
       }
       bottomNav={

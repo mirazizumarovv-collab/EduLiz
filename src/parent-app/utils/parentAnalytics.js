@@ -30,9 +30,11 @@ export function computeParentAnalytics({ studentId, grades, attendanceData, home
   // --- Academic: per-subject first-to-last trend, and the pure grades-only
   // monthly series (used by the Academic Performance section specifically). ---
   const subjectTrends = grades.map(s => {
-    const first = s.monthly[0].score;
+    const firstRealEntry = s.monthly.find(m => m.real) || s.monthly[0];
+    const first = firstRealEntry.score;
+    const firstMonth = firstRealEntry.month;
     const last = s.monthly[s.monthly.length - 1].score;
-    return { name: s.name, score: s.score, classAvg: s.classAvg, first, last, delta: last - first };
+    return { name: s.name, score: s.score, classAvg: s.classAvg, first, firstMonth, last, delta: last - first };
   });
   const academicByMonth = gradeMonths.map((_, i) =>
     Math.round(grades.reduce((sum, s) => sum + s.monthly[i].score, 0) / grades.length)

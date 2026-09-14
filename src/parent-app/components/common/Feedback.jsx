@@ -1,4 +1,5 @@
 import React from "react";
+import { ArrowLeft } from "lucide-react";
 import { useApp } from "../../../context/AppContext.jsx";
 import { spacing, radius, font } from "../../constants/theme.js";
 import { Button } from "./UI.jsx";
@@ -24,7 +25,7 @@ export function Toast({ text }) {
 // A real bottom sheet: scrolls internally when content is long, closes on
 // backdrop click, and respects the safe-area inset at the bottom.
 export function BottomSheet({ open, onClose, title, children }) {
-  const { theme } = useApp();
+  const { theme, t } = useApp();
   if (!open) return null;
   return (
     <div
@@ -40,7 +41,14 @@ export function BottomSheet({ open, onClose, title, children }) {
         }}
       >
         <div style={{ width: 36, height: 4, borderRadius: 2, background: theme.colors.tint, margin: "0 auto 14px" }} />
-        {title && <div style={{ fontFamily: font.family, fontSize: font.size.lg, color: theme.colors.textPrimary, fontWeight: 800, marginBottom: 14 }}>{title}</div>}
+        {title && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <button onClick={onClose} aria-label={t("back")} style={{ border: "none", background: "transparent", color: theme.colors.textSecondary, cursor: "pointer", padding: 0, display: "flex" }}>
+              <ArrowLeft size={18} />
+            </button>
+            <div style={{ fontFamily: font.family, fontSize: font.size.lg, color: theme.colors.textPrimary, fontWeight: 800 }}>{title}</div>
+          </div>
+        )}
         {children}
       </div>
     </div>

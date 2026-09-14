@@ -74,7 +74,7 @@ export default function Grades() {
       <BottomSheet open={!!selectedMonth} onClose={() => setSelectedMonth(null)} title={selectedMonth ? MONTH_NAMES[lang][selectedMonth] : ""}>
         {selectedMonth && subjects.map(s => {
           const entry = s.monthly.find(m => m.month === selectedMonth);
-          return <Row key={s.name} label={subj(lang, s.name)} value={entry ? `${entry.score}%` : "—"} />;
+          return <Row key={s.name} label={subj(lang, s.name)} value={entry?.real ? `${entry.score}%` : t("noAssessmentThisMonth")} />;
         })}
       </BottomSheet>
     </div>
