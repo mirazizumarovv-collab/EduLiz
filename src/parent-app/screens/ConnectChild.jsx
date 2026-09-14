@@ -1,8 +1,9 @@
 import React, { useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { useApp } from "../../context/AppContext.jsx";
 import { Button } from "../components/common/UI.jsx";
 
-export default function ConnectChild({ onNavigate }) {
+export default function ConnectChild({ onNavigate, onBack }) {
   const { t, theme, connectChild, showToast } = useApp();
   const c = theme.colors;
   const [invitationCode, setInvitationCode] = useState("");
@@ -30,7 +31,12 @@ export default function ConnectChild({ onNavigate }) {
   };
 
   return (
-    <div style={{ padding: "18px 16px 8px" }}>
+    <div style={{ padding: "18px 16px 8px", position: "relative" }}>
+      {onBack && (
+        <button onClick={onBack} aria-label={t("back")} style={{ border: "none", background: "transparent", color: c.textSecondary, cursor: "pointer", padding: 4, display: "flex", marginBottom: 10 }}>
+          <ArrowLeft size={20} />
+        </button>
+      )}
       <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6, color: c.textPrimary }}>{t("connectChildTitle")}</div>
       <div style={{ fontSize: 12.5, color: c.textSecondary, lineHeight: 1.6, marginBottom: 20 }}>{t("connectChildDesc")}</div>
 

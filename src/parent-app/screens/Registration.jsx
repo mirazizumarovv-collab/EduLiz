@@ -1,8 +1,9 @@
 import React, { useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { useApp } from "../../context/AppContext.jsx";
 import { Button } from "../components/common/UI.jsx";
 
-export default function Registration({ onRegister }) {
+export default function Registration({ onRegister, onBack }) {
   const { theme, t } = useApp();
   const c = theme.colors;
   const [phone, setPhone] = useState("");
@@ -28,7 +29,12 @@ export default function Registration({ onRegister }) {
   };
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 28px" }}>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 28px", position: "relative" }}>
+      {onBack && (
+        <button onClick={onBack} aria-label={t("back")} style={{ position: "absolute", top: 18, left: 18, border: "none", background: "transparent", color: c.textSecondary, cursor: "pointer", padding: 4, display: "flex" }}>
+          <ArrowLeft size={20} />
+        </button>
+      )}
       <div style={{ textAlign: "center", marginBottom: 30 }}>
         <div style={{
           width: 60, height: 60, borderRadius: 16, background: c.surfaceStrong, margin: "0 auto 16px",

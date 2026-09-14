@@ -184,13 +184,13 @@ export default function ParentApp() {
     return <Onboarding onFinish={() => setOnboarded(true)} />;
   }
   if (!registered) {
-    return <Registration onRegister={(phone) => { setParentPhone(phone); setRegistered(true); setScreen("dashboard"); }} />;
+    return <Registration onRegister={(phone) => { setParentPhone(phone); setRegistered(true); setScreen("dashboard"); }} onBack={() => setOnboarded(false)} />;
   }
   if (locked) {
     return <PinLockScreen />;
   }
   if (!selectedStudent) {
-    return <ConnectChild onNavigate={setScreen} />;
+    return <ConnectChild onNavigate={setScreen} onBack={() => setRegistered(false)} />;
   }
 
   const ScreenComponent = SCREEN_MAP[screen] || Dashboard;
