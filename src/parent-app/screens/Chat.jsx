@@ -62,14 +62,16 @@ export default function Chat() {
   });
 
   return (
-    <div style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
+    <div>
       <div style={{ padding: "18px 16px 8px" }}>
         <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 2, color: c.textPrimary }}>{t("navChat")}</div>
         <div style={{ fontSize: 12, color: c.textSecondary }}>{t("chatSubtitle")}</div>
         <div style={{ fontSize: 10.5, color: c.textSecondary, marginTop: 4 }}>{t("replyTimeNote", { hours: CENTER_REPLY_TIME_HOURS })}</div>
       </div>
 
-      <div style={{ flex: "1 0 auto", padding: "0 16px" }}>
+      {/* Bottom padding reserves room for the fixed input bar below, so the
+          last message is never hidden behind it. */}
+      <div style={{ padding: "0 16px 76px" }}>
         {list.length === 0 ? (
           <EmptyState icon="💬" title={t("noMessages")} />
         ) : renderItems.map((item, i) => {
@@ -100,7 +102,17 @@ export default function Chat() {
         })}
       </div>
 
-      <div style={{ position: "sticky", bottom: 0, flexShrink: 0, display: "flex", gap: 8, padding: "10px 16px calc(14px + env(safe-area-inset-bottom))", background: c.surface, borderTop: `1px solid ${c.border}` }}>
+      {/* Fixed (not sticky) — sticky only pins while scrolling PAST the
+          element, so it does nothing when the message list is shorter than
+          the viewport. Fixed always pins, regardless of content length.
+          Positioned above the bottom nav (76px) and matched to AppShell's
+          own centered max-480px container so it aligns correctly on wider
+          screens instead of spanning the full browser width. */}
+      <div style={{
+        position: "fixed", bottom: "calc(76px + env(safe-area-inset-bottom))", left: "50%", transform: "translateX(-50%)",
+        width: "100%", maxWidth: 480, boxSizing: "border-box",
+        display: "flex", gap: 8, padding: "10px 16px", background: c.surface, borderTop: `1px solid ${c.border}`, zIndex: 15,
+      }}>
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
