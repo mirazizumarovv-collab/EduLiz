@@ -6,7 +6,6 @@ import { Row, Button } from "../components/common/UI.jsx";
 import { LoadingSkeleton, ErrorState, EmptyState } from "../components/common/Feedback.jsx";
 import { formatTime } from "../utils/formatters.js";
 import { isQuietHoursNow, isSuppressedByQuietHours, daysUntilPaymentDue } from "../utils/calculations.js";
-import { CURRENT_TIME_STR, CURRENT_DATE_STR } from "../constants/months.js";
 import { getPayments } from "../data/payments.js";
 
 const CATEGORIES = ["attendance", "homework", "grades", "payments", "general"];
@@ -15,20 +14,27 @@ const CATEGORY_LABEL_KEY = { attendance: "catAttendance", homework: "catHomework
 export default function Notifications() {
   const {
     t, selectedStudent, theme, lang, notifPrefs, quietHours,
-    readNotifIds, markNotifRead, markAllNotifsRead, deletedNotifIds, deleteNotif,
+    readNotifIds, markNotifRead, markAllNotifsRead, deletedNotifIds, deleteNotif, undoDeleteNotif, showToast,
+    gradesRecords, homeworkRecords, homeworkSubmissions, paymentsStatus, attendanceRecords, today, nowTime,
   } = useApp();
   const c = theme.colors;
   const [catFilter, setCatFilter] = useState("all");
-  const { data, loading, error, reload } = useAsyncData(() => notificationService.get(selectedStudent.id), [selectedStudent.id]);
+  const { data, loading, error, reload } = useAsyncData(
+    () => notificationService.get(selectedStudent.id),
+    [selectedStudent.id, gradesRecords, homeworkRecords, homeworkSubmissions, paymentsStatus, attendanceRecords, today]
+  );
+  // Live: the canonical stores notifications are generated from are in the
+  // dependency array, so a new grade/overdue item/payment change/late mark
+  // regenerates this list immediately — no remount needed.
 
   if (loading) return <div style={{ padding: 18 }}><LoadingSkeleton rows={4} /></div>;
   if (error) return <ErrorState t={t} message={t("failedToLoad")} onRetry={reload} />;
 
-  const quietActive = isQuietHoursNow(quietHours, CURRENT_TIME_STR);
+  const quietActive = isQuietHoursNow(quietHours, nowTime);
   const allVisible = data.filter(n =>
     notifPrefs[n.category] &&
     !deletedNotifIds.has(n.id) &&
-    !isSuppressedByQuietHours(n.category, quietHours, CURRENT_TIME_STR)
+    !isSuppressedByQuietHours(n.category, quietHours, nowTime)
   );
   const visible = catFilter === "all" ? allVisible : allVisible.filter(n => n.category === catFilter);
   const isRead = (n) => n.read || readNotifIds.has(n.id);
@@ -36,14 +42,14 @@ export default function Notifications() {
   const payment = getPayments(selectedStudent.id);
   const resolveVars = (n) => {
     if (n.textKey === "notifPaymentDue" && payment.deadline) {
-      return { ...n.vars, days: daysUntilPaymentDue(payment.deadline, CURRENT_DATE_STR) };
+      return { ...n.vars, days: daysUntilPaymentDue(payment.deadline, today) };
     }
     return n.vars;
   };
 
   // "TODAY" summary — counts per category among today's notifications only.
   const todayCounts = {};
-  allVisible.filter(n => n.time.startsWith(CURRENT_DATE_STR)).forEach(n => {
+  allVisible.filter(n => n.time.startsWith(today)).forEach(n => {
     todayCounts[n.category] = (todayCounts[n.category] || 0) + 1;
   });
 
@@ -104,7 +110,7 @@ export default function Notifications() {
                   {t("markRead")}
                 </button>
               )}
-              <button onClick={() => deleteNotif(n.id)} aria-label={t("deleteNotificationAria")} style={{ border: "none", background: "transparent", color: c.textSecondary, fontSize: 13, cursor: "pointer", flexShrink: 0 }}>
+              <button onClick={() => { deleteNotif(n.id); showToast(t("notificationDeleted"), { label: t("undo"), onClick: () => undoDeleteNotif(n.id) }); }} aria-label={t("deleteNotificationAria")} style={{ border: "none", background: "transparent", color: c.textSecondary, fontSize: 13, cursor: "pointer", flexShrink: 0 }}>
                 ✕
               </button>
             </div>

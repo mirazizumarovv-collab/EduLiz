@@ -16,20 +16,27 @@ export default function ManageGroups() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [rosterOpenId, setRosterOpenId] = useState(null);
 
+  const [formError, setFormError] = useState("");
+  const [editError, setEditError] = useState("");
+  const groupError = (reason) => ({ name: t("errorGroupName"), subject: t("errorGroupSubject"), schedule: t("errorGroupSchedule") }[reason] || "");
+
   const handleAdd = () => {
-    if (!form.name.trim()) return;
-    addGroup({ ...form });
+    const r = addGroup({ ...form });
+    if (!r.ok) { setFormError(groupError(r.reason)); return; }
+    setFormError("");
     setForm({ ...emptyForm, teacherId: teachers[0]?.id || "" });
     setFormOpen(false);
   };
 
   const startEdit = (g) => {
     setEditingId(g.id);
+    setEditError("");
     setEditForm({ name: g.name, subject: g.subject, teacherId: g.teacherId, schedule: g.schedule });
   };
   const saveEdit = (groupId) => {
-    if (!editForm.name.trim()) return;
-    updateGroup(groupId, editForm);
+    const r = updateGroup(groupId, editForm);
+    if (!r.ok) { setEditError(groupError(r.reason)); return; }
+    setEditError("");
     setEditingId(null);
   };
   const handleDelete = (groupId) => {
@@ -58,6 +65,7 @@ export default function ManageGroups() {
             {teachers.map(tc => <option key={tc.id} value={tc.id}>{tc.name}</option>)}
           </select>
           <input placeholder={t("schedulePlaceholder")} value={form.schedule} onChange={(e) => setForm({ ...form, schedule: e.target.value })} style={{ border: `1px solid ${c.border}`, borderRadius: 10, padding: "10px 12px", background: c.surfaceAlt, color: c.textPrimary, fontSize: 13 }} />
+          {formError && <div role="alert" style={{ fontSize: 12, color: c.danger }}>{formError}</div>}
           <Button onClick={handleAdd} style={{ alignSelf: "flex-start" }}>{t("save")}</Button>
         </div>
       )}
@@ -74,6 +82,7 @@ export default function ManageGroups() {
                   {teachers.map(tc => <option key={tc.id} value={tc.id}>{tc.name}</option>)}
                 </select>
                 <input value={editForm.schedule} onChange={(e) => setEditForm({ ...editForm, schedule: e.target.value })} style={{ border: `1px solid ${c.border}`, borderRadius: 10, padding: "9px 12px", background: c.surfaceAlt, color: c.textPrimary, fontSize: 13 }} />
+                {editError && <div role="alert" style={{ fontSize: 12, color: c.danger }}>{editError}</div>}
                 <div style={{ display: "flex", gap: 8 }}>
                   <Button onClick={() => saveEdit(g.id)}>{t("save")}</Button>
                   <button onClick={() => setEditingId(null)} style={{ border: "none", background: c.surfaceAlt, color: c.textSecondary, borderRadius: 10, padding: "0 16px", fontSize: 13, cursor: "pointer" }}>{t("cancel")}</button>
@@ -87,7 +96,23 @@ export default function ManageGroups() {
                 <div>
                   <div style={{ fontSize: 14.5, fontWeight: 700, color: c.textPrimary }}>{g.name}</div>
                   <div style={{ fontSize: 12, color: c.textSecondary, marginTop: 4 }}>{g.subject} · {g.schedule}</div>
-                  <div style={{ fontSize: 12, color: c.textSecondary, marginTop: 4 }}>{teacherName(g.teacherId)}</div>
+                  {teachers.some(tc => tc.id === g.teacherId) ? (
+                    <div style={{ fontSize: 12, color: c.textSecondary, marginTop: 4 }}>{teacherName(g.teacherId)}</div>
+                  ) : (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: c.medium }}>{t("noTeacherAssigned")}</span>
+                      {teachers.length > 0 && (
+                        <select
+                          value=""
+                          onChange={(e) => e.target.value && updateGroup(g.id, { teacherId: e.target.value })}
+                          style={{ border: `1px solid ${c.border}`, borderRadius: 8, padding: "5px 8px", background: c.surfaceAlt, color: c.accent, fontSize: 12, fontWeight: 700 }}
+                        >
+                          <option value="">{t("assignTeacher")}</option>
+                          {teachers.map(tc => <option key={tc.id} value={tc.id}>{tc.name}</option>)}
+                        </select>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={() => startEdit(g)} aria-label={t("edit")} style={{ border: "none", background: c.surfaceAlt, color: c.textSecondary, borderRadius: 8, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>

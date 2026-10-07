@@ -10,11 +10,14 @@ const STATUS_KEY = { paid: "paymentStatusPaid", due: "paymentStatusDue", overdue
 const FEE_KEY = { tuition: "tuition", materials: "materials" };
 
 export default function Payments() {
-  const { t, selectedStudent, theme, lang, showToast } = useApp();
+  const { t, selectedStudent, theme, lang, showToast, paymentsStatus, paymentTransactions } = useApp();
   const c = theme.colors;
   const [showComingSoon, setShowComingSoon] = useState(false);
 
-  const { data, loading, error, reload } = useAsyncData(() => paymentService.get(selectedStudent.id), [selectedStudent.id]);
+  const { data, loading, error, reload } = useAsyncData(() => paymentService.get(selectedStudent.id), [selectedStudent.id, paymentsStatus, paymentTransactions]);
+  // Live: the canonical store is in the dependency array, so this re-fetches
+  // the moment Teacher/Admin/Operator changes it — no remount needed (see Chat.jsx
+  // for the same pattern applied directly against context instead of a service).
 
   if (loading) return <div style={{ padding: 18 }}><LoadingSkeleton rows={4} /></div>;
   if (error) return <ErrorState t={t} message={t("failedToLoad")} onRetry={reload} />;
@@ -54,7 +57,7 @@ export default function Payments() {
         {data.history.length === 0 ? (
           <EmptyState icon="💳" title={t("noPaymentHistory")} />
         ) : data.history.map((h, i) => (
-          <Row key={i} label={h.month} value={formatCurrency(h.amount, data.currency, lang)} sub={formatDate(h.paidOn, lang)} />
+          <Row key={i} label={`${h.month} ${h.year}`} value={formatCurrency(h.amount, data.currency, lang)} sub={formatDate(h.paidOn, lang)} />
         ))}
       </Section>
     </div>

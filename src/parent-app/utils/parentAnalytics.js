@@ -1,4 +1,4 @@
-import { MONTHS, CURRENT_MONTH } from "../constants/months.js";
+import { monthWindow, todayISO } from "../../utils/clock.js";
 import { attendanceRate, homeworkStats, groupComparisonLabel } from "./calculations.js";
 
 const BASE_WEIGHTS = { grades: 0.6, attendance: 0.2, homework: 0.2 };
@@ -11,9 +11,11 @@ const BASE_WEIGHTS = { grades: 0.6, attendance: 0.2, homework: 0.2 };
 // whichever components DO have data that month, rather than treating
 // missing data as a zero.
 function compositeScoreForMonth(gradeScore, attPct, hwPct) {
-  const parts = [{ v: gradeScore, w: BASE_WEIGHTS.grades }];
+  const parts = [];
+  if (gradeScore !== null && gradeScore !== undefined) parts.push({ v: gradeScore, w: BASE_WEIGHTS.grades });
   if (attPct !== null && attPct !== undefined) parts.push({ v: attPct, w: BASE_WEIGHTS.attendance });
   if (hwPct !== null && hwPct !== undefined) parts.push({ v: hwPct, w: BASE_WEIGHTS.homework });
+  if (parts.length === 0) return null; // nothing known at all for this month
   const totalW = parts.reduce((s, p) => s + p.w, 0);
   return Math.round(parts.reduce((s, p) => s + p.v * p.w, 0) / totalW);
 }
@@ -22,7 +24,28 @@ function compositeScoreForMonth(gradeScore, attPct, hwPct) {
 // analytics" view — first-to-last-month trends, month-over-month comparison,
 // per-subject trends, and a narrative conclusion + recommendations built
 // from real computed deltas (nothing invented).
-export function computeParentAnalytics({ studentId, grades, attendanceData, homework }) {
+// `today` is the day the report is for (default: the real current day); the months
+// it covers are the window ending with that day's month.
+export function computeParentAnalytics({ studentId, grades, attendanceData, homework, today = todayISO() }) {
+  if (grades.length === 0) {
+    // No subject has ever been graded, so there's no defined reporting
+    // period to anchor attendance/homework to either (the real function
+    // below derives everything from the grades' own month range) — every
+    // field here is a safe, neutral default a caller can use directly
+    // without crashing, even one that doesn't check hasGrades first.
+    const emptySubjectStat = { name: null, score: 0, classAvg: 0, first: 0, firstMonth: null, last: 0, delta: 0 };
+    return {
+      hasGrades: false,
+      firstGradeMonth: null, lastGradeMonth: null, gradeMonths: [],
+      subjectTrends: [], academicByMonth: [], academicIsNewByMonth: [], compositeByMonth: [],
+      overallFirst: null, overallLast: null, overallLastIsNew: false, overallDeltaSinceFirst: 0, overallPrevMonth: null, overallMoMDelta: 0,
+      attByMonth: [], attFirst: null, attLast: null, attPrevMonth: null, attMoMDelta: 0, attFirstMonth: null, attLastMonth: null, attPrevMonthKey: null,
+      hwByMonth: [], hwStatsOverall: homeworkStats(homework.pending, homework.history), hwCurrentMonthPct: 0, hwPrevMonthPct: 0, hwMoMDelta: 0, hwFirstMonth: null, hwLastMonth: null, hwPrevMonthKey: null,
+      overallScore: null, overallWeights: { grades: 0, attendance: 0, homework: 0 },
+      strongest: emptySubjectStat, needsAttention: emptySubjectStat, overallStatus: "stable",
+      overallHasPrev: false, attHasPrev: false, hwHasPrev: false,
+    };
+  }
   const gradeMonths = grades[0].monthly.map(m => m.month);
   const firstGradeMonth = gradeMonths[0];
   const lastGradeMonth = gradeMonths[gradeMonths.length - 1];
@@ -36,9 +59,30 @@ export function computeParentAnalytics({ studentId, grades, attendanceData, home
     const last = s.monthly[s.monthly.length - 1].score;
     return { name: s.name, score: s.score, classAvg: s.classAvg, first, firstMonth, last, delta: last - first };
   });
-  const academicByMonth = gradeMonths.map((_, i) =>
-    Math.round(grades.reduce((sum, s) => sum + s.monthly[i].score, 0) / grades.length)
-  );
+  // Only average subjects that have a REAL assessment for this specific
+  // month — a subject's `monthly[i].score` for a month before its first
+  // real assessment is a carried-forward placeholder (for chart
+  // continuity only, see grades.js), not a genuine grade. Blending that
+  // placeholder into this month's academic average would understate or
+  // overstate the real picture using data that never happened.
+  // "Known by month i" = this subject has had at least one REAL assessment
+  // in month i or any earlier tracked month. True from a subject's first
+  // real assessment onward (so its legitimately forward-carried score still
+  // counts in later gap months with no new tests at all); false before
+  // that (so another subject's value never gets backward-projected into
+  // this one's average before it has ever actually been assessed).
+  const academicByMonth = gradeMonths.map((_, i) => {
+    const knownSubjects = grades.filter(s => s.monthly.slice(0, i + 1).some(m => m.real));
+    if (knownSubjects.length === 0) return null; // nothing real yet for ANY subject this far
+    return Math.round(knownSubjects.reduce((sum, s) => sum + s.monthly[i].score, 0) / knownSubjects.length);
+  });
+  // True only when at least one subject had a GENUINELY NEW assessment in
+  // this exact month — distinct from academicByMonth's value being
+  // non-null, which also covers months where every contributing subject's
+  // score is carried forward from an earlier month. A display that pairs
+  // a month's name with its score (e.g. "September: 80%") should check
+  // this first and say "No new assessment" instead when it's false.
+  const academicIsNewByMonth = gradeMonths.map((_, i) => grades.some(s => s.monthly[i].real));
 
   // --- Attendance: same reporting period as grades, but a month with no
   // actual attendance records is `pct: null` ("no data") rather than being
@@ -61,20 +105,26 @@ export function computeParentAnalytics({ studentId, grades, attendanceData, home
   // --- Homework: sparse by nature (only months with assignments); looked up
   // by month key so composite scoring can skip months with no homework. ---
   const hwAll = [...homework.pending, ...homework.history];
-  const monthsWithHw = MONTHS.filter(m => hwAll.some(h => h.month === m));
+  // Homework is filed under a month AND year (its `ym`, e.g. "2026-10"), so an
+  // assignment due in October of a different year never lands in this October.
+  const monthsInView = monthWindow(today);
+  const monthsWithHw = monthsInView.filter(w => hwAll.some(h => h.ym === w.ym)).map(w => w.abbr);
+  const ymOfMonth = new Map(monthsInView.map(w => [w.abbr, w.ym]));
   const hwByMonth = monthsWithHw.map(m => {
-    const items = hwAll.filter(h => h.month === m);
+    const items = hwAll.filter(h => h.ym === ymOfMonth.get(m));
     const completed = items.filter(h => h.status === "completed").length;
     return { month: m, total: items.length, completed, pct: items.length ? Math.round((completed / items.length) * 100) : 0 };
   });
   const hwPctByMonthKey = new Map(hwByMonth.map(r => [r.month, r.pct]));
   const hwStatsOverall = homeworkStats(homework.pending, homework.history);
-  // Anchor "current"/"previous" to CURRENT_MONTH explicitly rather than
-  // trusting "last item in the array" — a future-dated homework entry
-  // should never be mistaken for the current month's data.
-  const currentMonthIdx = MONTHS.indexOf(CURRENT_MONTH);
-  const hwByMonthUpToNow = hwByMonth.filter(r => MONTHS.indexOf(r.month) <= currentMonthIdx);
-  const hwCurrentEntry = hwByMonthUpToNow.find(r => r.month === CURRENT_MONTH) || hwByMonthUpToNow[hwByMonthUpToNow.length - 1] || null;
+  // The window ENDS with the current month, so every month in it is "up to
+  // now" by construction — homework due in a later month (or any other year)
+  // is simply not in it. "Current" is the window's last month, not "the last
+  // entry that happens to have homework", so a month with none doesn't make
+  // an earlier month look current.
+  const hwByMonthUpToNow = hwByMonth;
+  const currentMonthAbbr = monthsInView[monthsInView.length - 1].abbr;
+  const hwCurrentEntry = hwByMonthUpToNow.find(r => r.month === currentMonthAbbr) || hwByMonthUpToNow[hwByMonthUpToNow.length - 1] || null;
   const hwCurrentMonthPct = hwCurrentEntry ? hwCurrentEntry.pct : hwStatsOverall.completionRate;
   const hwCurrentIdx = hwCurrentEntry ? hwByMonthUpToNow.indexOf(hwCurrentEntry) : -1;
   const hwPrevEntry = hwCurrentIdx > 0 ? hwByMonthUpToNow[hwCurrentIdx - 1] : null;
@@ -83,6 +133,8 @@ export function computeParentAnalytics({ studentId, grades, attendanceData, home
   const hwFirstMonth = hwByMonthUpToNow.length ? hwByMonthUpToNow[0].month : null;
   const hwLastMonth = hwCurrentEntry ? hwCurrentEntry.month : null;
   const hwPrevMonthKey = hwPrevEntry ? hwPrevEntry.month : hwFirstMonth;
+  const hwHasPrev = hwPrevEntry !== null;
+  const attHasPrev = attWithData.length > 1;
 
   // --- ONE composite series across the full reporting period. This is what
   // "Overall Score" and the "Overall Trend" chart both read from, so they
@@ -92,8 +144,11 @@ export function computeParentAnalytics({ studentId, grades, attendanceData, home
   );
   const overallFirst = compositeByMonth[0];
   const overallLast = compositeByMonth[compositeByMonth.length - 1];
+  const overallLastIsNew = academicIsNewByMonth[academicIsNewByMonth.length - 1];
   const overallDeltaSinceFirst = overallLast - overallFirst;
-  const overallPrevMonth = compositeByMonth[compositeByMonth.length - 2];
+  // With only one month of data there is no earlier period to compare to.
+  const overallHasPrev = compositeByMonth.length > 1;
+  const overallPrevMonth = overallHasPrev ? compositeByMonth[compositeByMonth.length - 2] : overallLast;
   const overallMoMDelta = overallLast - overallPrevMonth;
   const overallScore = overallLast;
 
@@ -132,11 +187,13 @@ export function computeParentAnalytics({ studentId, grades, attendanceData, home
   else overallStatus = "stable";
 
   return {
+    hasGrades: true,
     firstGradeMonth, lastGradeMonth, gradeMonths,
-    subjectTrends, academicByMonth, compositeByMonth,
-    overallFirst, overallLast, overallDeltaSinceFirst, overallPrevMonth, overallMoMDelta,
+    subjectTrends, academicByMonth, academicIsNewByMonth, compositeByMonth,
+    overallFirst, overallLast, overallLastIsNew, overallDeltaSinceFirst, overallPrevMonth, overallMoMDelta,
     attByMonth, attFirst, attLast, attPrevMonth, attMoMDelta, attFirstMonth, attLastMonth, attPrevMonthKey,
     hwByMonth, hwStatsOverall, hwCurrentMonthPct, hwPrevMonthPct, hwMoMDelta, hwFirstMonth, hwLastMonth, hwPrevMonthKey,
     overallScore, overallWeights, strongest, needsAttention, overallStatus,
+    overallHasPrev, attHasPrev, hwHasPrev,
   };
 }

@@ -8,15 +8,18 @@ import { TrendLineChart } from "../components/charts/TrendLineChart.jsx";
 import { computeSubjectDerived } from "../data/grades.js";
 import { groupComparisonLabel, scoreColor } from "../utils/calculations.js";
 import { subj } from "../utils/subjectNames.js";
-import { MONTHS, MONTH_NAMES } from "../constants/months.js";
+import { MONTH_NAMES } from "../constants/months.js";
 
 export default function Grades() {
-  const { t, lang, selectedStudent, theme } = useApp();
+  const { t, lang, selectedStudent, theme, gradesRecords, today } = useApp();
   const c = theme.colors;
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [period, setPeriod] = useState("all");
 
-  const { data, loading, error, reload } = useAsyncData(() => gradeService.get(selectedStudent.id), [selectedStudent.id]);
+  const { data, loading, error, reload } = useAsyncData(() => gradeService.get(selectedStudent.id), [selectedStudent.id, gradesRecords, today]);
+  // Live: the canonical store is in the dependency array, so this re-fetches
+  // the moment Teacher/Admin/Operator changes it — no remount needed (see Chat.jsx
+  // for the same pattern applied directly against context instead of a service).
 
   if (loading) return <div style={{ padding: 18 }}><LoadingSkeleton rows={5} /></div>;
   if (error) return <ErrorState t={t} message={t("failedToLoad")} onRetry={reload} />;
@@ -34,7 +37,7 @@ export default function Grades() {
       <div style={{ fontSize: 12.5, color: c.textSecondary, marginBottom: 16 }}>{t("gradesSubtitle")}</div>
 
       {subjects.map(s => {
-        const comparison = groupComparisonLabel(s.score, s.classAvg);
+        const comparison = groupComparisonLabel(s.score, s.classAvg, s.hasClassComparison);
         return (
           <div key={s.name} style={{ background: c.surfaceAlt, borderRadius: 10, padding: 14, marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -44,7 +47,7 @@ export default function Grades() {
             <div style={{ fontSize: 11.5, color: c.textSecondary, marginBottom: 8 }}>
               {s.lastAssessment.title} · {s.lastAssessment.scoreRaw} · {s.lastAssessment.date}
             </div>
-            <div style={{ fontSize: 11.5, color: comparison.key === "belowGroupAverage" ? c.danger : c.accent, fontWeight: 700, marginBottom: 10 }}>
+            <div style={{ fontSize: 11.5, color: comparison.key === "belowGroupAverage" ? c.danger : comparison.key === "noComparisonData" ? c.textSecondary : c.accent, fontWeight: 700, marginBottom: 10 }}>
               {t(comparison.key)}{comparison.pct > 0 ? ` (${t("byPercent", { pct: comparison.pct })})` : ""}
             </div>
             <TrendLineChart data={s.weeklyTrend} dataKey="score" xKey="week" height={60} />

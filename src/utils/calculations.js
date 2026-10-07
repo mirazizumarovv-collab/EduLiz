@@ -23,11 +23,9 @@ export function monthKeyFromDate(dateStr) {
 const MONTHS_FULL = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // --- Grades -------------------------------------------------------------
-// gradesRecords[studentId] = [{ id, subject, title, score, maxScore, date }]
-export function getStudentGrades(studentId, gradesRecords) {
-  return gradesRecords[studentId] || [];
-}
-
+// The grade data model (assessments + per-student grade rows) lives in
+// utils/gradeModel.js; class averages are computed by assessmentId in
+// parent-app/data/grades.js.
 export function groupBySubject(entries) {
   const bySubject = {};
   entries.forEach(e => {
@@ -35,19 +33,6 @@ export function groupBySubject(entries) {
     bySubject[e.subject].push(e);
   });
   return bySubject;
-}
-
-// Class average for one specific assessment (same title+subject), across
-// every student in the group who has a recorded score for it — a real
-// benchmark computed from real classmates, not a synthetic number.
-export function classAverageForAssessment(title, subject, groupStudentIds, gradesRecords) {
-  const scores = [];
-  groupStudentIds.forEach(sid => {
-    const entry = (gradesRecords[sid] || []).find(e => e.title === title && e.subject === subject);
-    if (entry) scores.push(Math.round((entry.score / entry.maxScore) * 100));
-  });
-  if (scores.length === 0) return null;
-  return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
 }
 
 // --- Homework -------------------------------------------------------------

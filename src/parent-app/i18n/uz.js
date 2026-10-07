@@ -27,7 +27,7 @@ export default {
   connect: "Ulash", connectSuccess: "Farzand ulandi", connectError: "Bunday kodli o'quvchi topilmadi. Markazdan kodni tekshirib, qayta urinib ko'ring.",
 
   attendanceTitle: "Davomat", present: "Keldi", absent: "Kelmadi", late: "Kechikdi", excused: "Uzrli sabab", noClass: "Dars yo'q",
-  attendanceRate: "Davomat foizi", vsLastMonth: "o'tgan oyga nisbatan", vsGroupAvg: "guruh o'rtachasiga nisbatan",
+  attendanceRate: "Davomat foizi", vsGroupAvg: "guruh o'rtachasiga nisbatan",
   longestStreak: "Chorakdagi eng uzun ketma-ketlik", tapDayHint: "Batafsil ma'lumot uchun kunni bosing",
   attendanceGoodMsg: "Bu oyda a'lo davomat.", attendanceDropMsg: "Davomat o'tgan oyga nisbatan pasaydi.",
   thisMonth: "Bu oy", lastMonth: "O'tgan oy", change: "O'zgarish",
@@ -38,11 +38,13 @@ export default {
   performanceChange: "oldingi baholashga nisbatan", bestMonth: "Eng yaxshi oy", lowestMonth: "Eng past oy",
   average: "O'rtacha", best: "Eng yaxshi", lowest: "Eng past", trend: "Dinamika",
   monthlyResults: "Oylik natijalar", tapMonthHint: "Natijalarni ko'rish uchun oyni bosing",
-  aboveGroupAverage: "Guruh o'rtachasidan yuqori", belowGroupAverage: "Guruh o'rtachasidan past", atGroupAverage: "Guruh o'rtachasi darajasida",
+  aboveGroupAverage: "Guruh o'rtachasidan yuqori", belowGroupAverage: "Guruh o'rtachasidan past", atGroupAverage: "Guruh o'rtachasi darajasida", noComparisonData: "Taqqoslash uchun ma'lumot yo'q",
   byPercent: "{pct}%ga",
 
   homeworkTitle: "Uy vazifasi", homeworkSubtitle: "Markaz tomonidan berilgan",
   all: "Barchasi", pending: "Kutilmoqda", completed: "Bajarildi", overdue: "Muddati o'tgan", dueToday: "Bugun", dueTomorrow: "Ertaga",
+  completedLate: "Kech topshirilgan",
+  lateHw: "Kech topshirilgan",
   filterBySubject: "Fan", filterByDate: "Sana", completionRate: "Bajarilish foizi", onTimeRate: "O'z vaqtida bajarilish foizi", totalAssignments: "Jami topshiriqlar",
   noHomework: "Hozircha uy vazifasi berilmagan.",
 
@@ -85,16 +87,17 @@ export default {
   appLock: "PIN qulfi", changePin: "PINni o'zgartirish", biometric: "Biometrik kirish (tez orada)",
   setPin: "PIN o'rnating", enterPin: "4 xonali PIN kiriting", confirmPin: "PINni tasdiqlang", pinMismatch: "PINlar mos kelmadi",
   enterYourPin: "Ochish uchun PIN kiriting", unlock: "Ochish", wrongPin: "Noto'g'ri PIN, qayta urinib ko'ring", lockNow: "Hozir qulflash (test)",
-  downloadData: "Ma'lumotlarimni yuklab olish", downloadDataDesc: "Farzandingizning to'liq tarixini Excel fayli sifatida eksport qiling", dataDownloaded: "Ma'lumotlar fayli yuklab olindi",
+  downloadData: "Ma'lumotlarimni yuklab olish", downloadDataDesc: "Farzandingizning to'liq tarixini Excel fayli sifatida eksport qiling", dataDownloaded: "Ma'lumotlar fayli yuklab olindi", dataDownloadFailed: "Faylni yaratib bo'lmadi. Qayta urinib ko'ring.",
   privacyStatement: "Bu ma'lumotlarni faqat siz va markaz xodimlari ko'ra oladi. Ular hech qachon sotilmaydi yoki uchinchi tomonlarga berilmaydi.",
 
   guardiansTitle: "Bog'langan vasiylar", you: "Siz", addGuardian: "+ Vasiyni taklif qilish",
   roleMother: "Ona", roleFather: "Ota", roleGuardian: "Vasiy",
   inviteGuardianTitle: "Vasiyni taklif qilish", fullName: "To'liq ism", relationship: "Qarindoshlik", invite: "Taklif qilish",
   errorNameRequired: "Ismni kiriting.", errorPhoneRequired: "Telefon raqamini kiriting.",
+  yourName: "Ismingiz", yourNamePlaceholder: "Masalan: Dilnoza",
   allPinned: "Hammasi allaqachon pastki panelga qadalgan.",
   removeGuardianTitle: "Vasiy kirishini bekor qilasizmi?", removeGuardianBody: "{name} endi {child} haqidagi ma'lumotlarni ko'ra olmaydi.",
-  cancel: "Bekor qilish", removeAccess: "Kirishni bekor qilish", accessRevoked: "Kirish huquqi bekor qilindi", inviteSent: "Taklif havolasi nusxalandi",
+  cancel: "Bekor qilish", removeAccess: "Kirishni bekor qilish", accessRevoked: "Kirish huquqi bekor qilindi", cannotRemoveLastGuardian: "O'quvchida kamida bitta vasiy bo'lishi kerak.", inviteSent: "Taklif havolasi nusxalandi",
 
   loading: "Yuklanmoqda…", retry: "Qayta urinish", goBack: "Orqaga", reload: "Yangilash",
   noInternet: "Internet aloqasi yo'q", failedToLoad: "Ma'lumotlarni yuklab bo'lmadi", somethingWrong: "Nimadir xato ketdi",
@@ -197,4 +200,20 @@ export default {
   noRecentActivity: "Hali hech qanday faoliyat yo'q",
   insightsNeedGrades: "Tahlil uchun kamida bitta baho kerak. O'qituvchi baho qo'ygandan keyin bu yerda ko'rinadi.",
   noAssessmentThisMonth: "Bu oyda baholash bo'lmagan",
+  // Keys the Parent screens use that previously lived ONLY in the main
+  // (staff-side) dictionary. The running app reads a merged dictionary, so
+  // users never saw a raw key — but this dictionary wasn't self-contained,
+  // which would break if the parent app were ever extracted or reused on
+  // its own. Same text as the main dictionary, so the merged result (and
+  // the staff screens that share some of these) is unchanged.
+  back: "Orqaga",
+  guardianAlreadyAdded: "Bu telefon raqami allaqachon qo'shilgan.",
+  noGradesYet: "Hali baholar yo'q",
+  otpTitle: "Telefonni tasdiqlang",
+  overallSingleMonthSentence: "{name}ning {month} oyidagi umumiy ko'rsatkichi {score}%. Tendensiya keyingi oydan ko'rinadi.",
+  resendCode: "Kodni qayta yuborish",
+  singleMonthNote: "Hozircha faqat bir oylik ma'lumot",
+  trendNeedsMonths: "Tendensiya ikki oylik ma'lumot bo'lganda ko'rinadi",
+  undo: "Qaytarish",
+  notificationDeleted: "Bildirishnoma o'chirildi",
 };

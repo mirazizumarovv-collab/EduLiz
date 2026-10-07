@@ -1,4 +1,16 @@
-import { MONTHS } from "../constants/months.js";
+import { daysBetweenISO } from "../../utils/clock.js";
+
+// The subject whose most recent assessment is the newest of all — "Latest
+// result". (The list of subjects is in the order each was FIRST assessed, so
+// its first item is the one assessed longest ago, not the one assessed last.)
+// On a tie the earlier item in the list wins. null when there are none.
+export function mostRecentSubject(subjects) {
+  let best = null;
+  for (const s of subjects) {
+    if (!best || s.lastAssessment.date > best.lastAssessment.date) best = s;
+  }
+  return best;
+}
 
 export function attendanceRate(monthDays) {
   if (monthDays.length === 0) return null;
@@ -6,8 +18,27 @@ export function attendanceRate(monthDays) {
   return Math.round((attended / monthDays.length) * 100);
 }
 
+// Both streak functions count consecutive RECORDED class sessions, not
+// consecutive calendar days — this is a tutoring center with scheduled
+// sessions (e.g. Mon/Wed/Fri), not daily school, so "Sep 1, Sep 5, Sep 6"
+// being the only three sessions held is correctly a 3-session streak even
+// though the calendar dates between them aren't contiguous. If the center
+// ever needs a genuine calendar-day streak instead, that's a different
+// calculation (comparing actual dates, not just record order).
+// Both functions sort each month's days by day-of-month themselves rather
+// than trusting the caller's array order — getAttendance() happens to sort
+// before returning, but a streak calculation silently depending on that
+// elsewhere is a real risk if a future data source hands days in a
+// different order (e.g. insertion order from a database query).
+// The months arrive oldest-first (getAttendance builds them from the window of
+// months ending with the current one, which can run across a year end — Jul…Jan —
+// so "Jan" is the LAST month, not the first); each month's days are sorted here.
+function chronologicalDays(allMonthsDayData) {
+  return Object.values(allMonthsDayData).flatMap(days => (days || []).slice().sort((a, b) => a.day - b.day));
+}
+
 export function longestPresentStreak(allMonthsDayData) {
-  const allDays = MONTHS.flatMap(m => allMonthsDayData[m] || []);
+  const allDays = chronologicalDays(allMonthsDayData);
   let longest = 0, run = 0;
   allDays.forEach(d => {
     run = (d.status === "P" || d.status === "L") ? run + 1 : 0;
@@ -16,16 +47,20 @@ export function longestPresentStreak(allMonthsDayData) {
   return longest;
 }
 
-export function currentPresentStreak(monthDays) {
+// Takes the FULL multi-month record set (not just the current month) so a
+// streak that started in a previous month keeps counting instead of being
+// reset to 0 on the 1st of a new month.
+export function currentPresentStreak(allMonthsDayData) {
+  const allDays = chronologicalDays(allMonthsDayData);
   let streak = 0;
-  for (let i = monthDays.length - 1; i >= 0; i--) {
-    if (monthDays[i].status === "P" || monthDays[i].status === "L") streak++; else break;
+  for (let i = allDays.length - 1; i >= 0; i--) {
+    if (allDays[i].status === "P" || allDays[i].status === "L") streak++; else break;
   }
   return streak;
 }
 
-export function recentLateCount(monthDays, windowDays = 14) {
-  return monthDays.slice(-windowDays).filter(d => d.status === "L").length;
+export function recentLateCount(allMonthsDayData, windowDays = 14) {
+  return chronologicalDays(allMonthsDayData).slice(-windowDays).filter(d => d.status === "L").length;
 }
 
 export function homeworkStats(pending, history) {
@@ -55,10 +90,15 @@ export function trendArrow(delta) {
 // receives or exposes other students' names or individual scores — only a
 // single anonymous aggregate (classAvg) that the center supplies per subject.
 // Returns a bucketed, non-numeric-rank label per the "no exact ranking" rule.
-export function groupComparisonLabel(childScore, classAvg) {
+export function groupComparisonLabel(childScore, classAvg, hasComparison = true) {
+  if (!hasComparison) return { key: "noComparisonData", pct: 0 };
   const diff = childScore - classAvg;
-  const pctDiff = Math.round((Math.abs(diff) / classAvg) * 100);
   if (Math.abs(diff) < 2) return { key: "atGroupAverage", pct: 0 };
+  // classAvg === 0 makes a percentage DIFFERENCE undefined (there's nothing
+  // to take a percentage OF) — direction (above/below) is still real and
+  // worth stating, but the magnitude isn't a meaningful percentage. pct:
+  // null signals "don't show a percentage" rather than a false "by 0%".
+  const pctDiff = classAvg > 0 ? Math.round((Math.abs(diff) / classAvg) * 100) : null;
   if (diff > 0) return { key: "aboveGroupAverage", pct: pctDiff };
   return { key: "belowGroupAverage", pct: pctDiff };
 }
@@ -69,9 +109,10 @@ export function monthOverMonthDelta(monthlySeries) {
 }
 
 export function overallGrowth(monthlySeries) {
+  if (monthlySeries.length === 0) return { start: null, now: null, deltaPct: 0 };
   const start = monthlySeries[0].score;
   const now = monthlySeries[monthlySeries.length - 1].score;
-  return { start, now, deltaPct: Math.round(((now - start) / start) * 100) };
+  return { start, now, deltaPct: start > 0 ? Math.round(((now - start) / start) * 100) : 0 };
 }
 
 // Tiered good/medium/bad color for any percentage-style result. Always pair
@@ -83,12 +124,10 @@ export function scoreColor(theme, value, thresholds = [60, 80]) {
   return c.bad;
 }
 
-// Days until (positive) or past (negative) a payment deadline, using the
-// app's fixed demo "today" rather than the real device clock — swap
-// CURRENT_DATE_STR for a live value once this is wired to a real backend.
+// Days until (positive) or past (negative) a payment deadline, counted on the
+// calendar dates themselves (no clock or time zone involved).
 export function daysUntilPaymentDue(deadlineISO, currentDateStr) {
-  const oneDay = 86400000;
-  return Math.round((new Date(deadlineISO) - new Date(currentDateStr)) / oneDay);
+  return daysBetweenISO(currentDateStr, deadlineISO);
 }
 
 // Quiet hours suppress alert-style UI and non-critical notifications during

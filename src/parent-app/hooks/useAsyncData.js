@@ -8,14 +8,17 @@ export function useAsyncData(fetcher, deps = []) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const mountedRef = useRef(true);
+  const requestIdRef = useRef(0);
 
   const load = useCallback(() => {
+    const thisRequestId = ++requestIdRef.current;
+    const isStale = () => !mountedRef.current || requestIdRef.current !== thisRequestId;
     setLoading(true);
     setError(null);
     fetcher()
-      .then(result => { if (mountedRef.current) setData(result); })
-      .catch(err => { if (mountedRef.current) setError(err); })
-      .finally(() => { if (mountedRef.current) setLoading(false); });
+      .then(result => { if (!isStale()) setData(result); })
+      .catch(err => { if (!isStale()) setError(err); })
+      .finally(() => { if (!isStale()) setLoading(false); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 

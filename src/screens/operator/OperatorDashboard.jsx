@@ -6,7 +6,7 @@ export default function OperatorDashboard({ onNavigate }) {
   const { t, theme, messageThreads, requests } = useApp();
   const c = theme.colors;
 
-  const unreadCount = Object.values(messageThreads).reduce((sum, thread) => sum + thread.filter(m => m.from === "parent").length, 0);
+  const unreadCount = Object.values(messageThreads).reduce((sum, thread) => sum + thread.filter(m => m.from === "parent" && !m.readByOperator).length, 0);
   const pendingCount = requests.filter(r => r.status === "pending").length;
 
   const cards = [

@@ -22,21 +22,21 @@ import ParentMessages from "./screens/operator/ParentMessages.jsx";
 import RegistrationRequests from "./screens/operator/RegistrationRequests.jsx";
 
 const TEACHER_NAV = (t) => [
-  { key: "dashboard", label: t("navDashboard"), Icon: LayoutDashboard },
+  { key: "dashboard", label: t("navHomeStaff"), Icon: LayoutDashboard },
   { key: "groups", label: t("navGroups"), Icon: Users2 },
   { key: "attendance", label: t("navAttendance"), Icon: CalendarCheck },
   { key: "grades", label: t("navGrades"), Icon: GraduationCap },
   { key: "homework", label: t("navHomework"), Icon: BookOpen },
 ];
 const ADMIN_NAV = (t) => [
-  { key: "dashboard", label: t("navDashboard"), Icon: LayoutDashboard },
+  { key: "dashboard", label: t("navHomeStaff"), Icon: LayoutDashboard },
   { key: "students", label: t("navStudents"), Icon: Users2 },
-  { key: "groups", label: t("navGroups"), Icon: Building2 },
+  { key: "groups", label: t("navAllGroups"), Icon: Building2 },
   { key: "teachers", label: t("navTeachers"), Icon: GraduationCap },
   { key: "payments", label: t("navPayments"), Icon: Wallet },
 ];
 const OPERATOR_NAV = (t) => [
-  { key: "dashboard", label: t("navDashboard"), Icon: LayoutDashboard },
+  { key: "dashboard", label: t("navHomeStaff"), Icon: LayoutDashboard },
   { key: "messages", label: t("navMessages"), Icon: MessageCircle },
   { key: "requests", label: t("navRequests"), Icon: UserPlus },
 ];
@@ -48,6 +48,15 @@ const OPERATOR_SCREENS = { dashboard: OperatorDashboard, messages: ParentMessage
 function MainApp() {
   const { role, t, currentTeacher } = useApp();
   const [screen, setScreen] = useState("dashboard");
+  const [screenRole, setScreenRole] = useState(role);
+  if (role !== screenRole) {
+    // A role switch (logout + sign in as a different role, or a direct role
+    // change) means the PREVIOUS role's screen key may not exist in the new
+    // role's nav at all — reset to dashboard so the rendered screen and the
+    // sidebar's active-item highlighting always agree.
+    setScreenRole(role);
+    if (screen !== "dashboard") setScreen("dashboard");
+  }
 
   if (!role) return <RoleSelect />;
 

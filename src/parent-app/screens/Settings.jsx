@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { samePhone, formatUzPhone, isValidUzPhone } from "../../utils/phone.js";
 import { Eye, EyeOff } from "lucide-react";
 import { useApp, NAV_POOL } from "../../context/AppContext.jsx";
 import { Section, Row, Toggle, Button } from "../components/common/UI.jsx";
@@ -33,11 +34,34 @@ export default function Settings({ onNavigate, onOpenPrintReport }) {
   const [invitePhone, setInvitePhone] = useState("");
   const [inviteRole, setInviteRole] = useState("Mother");
   const [inviteError, setInviteError] = useState("");
+  const [exporting, setExporting] = useState(false);
+
+  // Exports the SELECTED child's full history as an Excel file. The spreadsheet
+  // library is large and most sessions never export, so it is loaded on
+  // demand here instead of being pulled into the app's initial bundle. The
+  // busy flag stops a second tap from starting a second download while the
+  // first is still loading.
+  const handleDownloadData = async () => {
+    if (exporting || !selectedStudent) return;
+    setExporting(true);
+    try {
+      const { exportChildDataToExcel } = await import("../utils/exportExcel.js");
+      exportChildDataToExcel(selectedStudent);
+      showToast(t("dataDownloaded"));
+    } catch (err) {
+      console.error("Excel export failed:", err);
+      showToast(t("dataDownloadFailed"));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const submitInvite = () => {
     if (!inviteName.trim()) { setInviteError(t("errorNameRequired")); return; }
     if (!invitePhone.trim()) { setInviteError(t("errorPhoneRequired")); return; }
-    addGuardian({ name: inviteName.trim(), phone: invitePhone.trim(), role: inviteRole });
+    if (!isValidUzPhone(invitePhone)) { setInviteError(t("errorPhoneInvalid")); return; }
+    const result = addGuardian({ name: inviteName.trim(), phone: formatUzPhone(invitePhone), role: inviteRole });
+    if (!result.ok) { setInviteError(t("guardianAlreadyAdded")); return; }
     setInviteName(""); setInvitePhone(""); setInviteRole("Mother"); setInviteError("");
     setInviteSheetOpen(false);
     showToast(t("inviteSent"));
@@ -129,23 +153,27 @@ export default function Settings({ onNavigate, onOpenPrintReport }) {
       <Section title={t("sectionPrivacy")}>
         <div style={{ fontSize: 11.5, color: c.textSecondary, lineHeight: 1.6, marginBottom: 10 }}>{t("privacyStatement")}</div>
         <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 8, color: c.textPrimary }}>{t("guardiansTitle")}</div>
-        {guardians.map(g => (
-          <div key={g.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 2px" }}>
-            <div>
-              <div style={{ fontSize: 13, color: c.textPrimary }}>{g.name}{g.isSelf ? ` (${t("you")})` : ""}</div>
-              <div style={{ fontSize: 10.5, color: c.textSecondary }}>{t(`role${g.role}`)}{g.phone ? ` · ${g.phone}` : ""}</div>
+        {guardians.map(g => {
+          const isSelf = samePhone(g.phone, parentPhone);
+          return (
+            <div key={g.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 2px" }}>
+              <div>
+                <div style={{ fontSize: 13, color: c.textPrimary }}>{g.name}{isSelf ? ` (${t("you")})` : ""}</div>
+                <div style={{ fontSize: 10.5, color: c.textSecondary }}>{t(`role${g.role}`)}{g.phone ? ` · ${g.phone}` : ""}</div>
+              </div>
+              {!isSelf && (
+                <button onClick={() => setGuardianToRemove(g)} style={{ border: "none", background: "transparent", color: c.danger, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  {t("removeAccess")}
+                </button>
+              )}
             </div>
-            {!g.isSelf && (
-              <button onClick={() => setGuardianToRemove(g)} style={{ border: "none", background: "transparent", color: c.danger, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                {t("removeAccess")}
-              </button>
-            )}
-          </div>
-        ))}
+          );
+        })}
         <Row label={t("addGuardian")} onClick={() => setInviteSheetOpen(true)} />
         {canInstall && <Row label={t("installApp")} sub={t("installAppDesc")} onClick={() => promptInstall().then(o => o === "accepted" && showToast(t("installAppDone")))} />}
         {installed && <Row label={t("installApp")} sub={t("installAppAlready")} />}
         <Row label={t("printReport")} sub={t("printReportDesc")} onClick={onOpenPrintReport} />
+        <Row label={t("downloadData")} sub={t("downloadDataDesc")} onClick={handleDownloadData} />
       </Section>
 
       <Section title={t("sectionApplication")}>
@@ -181,12 +209,7 @@ export default function Settings({ onNavigate, onOpenPrintReport }) {
         <label style={{ fontSize: 11, color: c.textSecondary, marginBottom: 4, display: "block" }}>{t("phoneNumber")}</label>
         <input
           value={invitePhone} onChange={(e) => {
-            let val = e.target.value;
-            if (!val.startsWith("+998")) {
-              const digitsOnly = val.replace(/\D/g, "");
-              val = digitsOnly.length === 0 ? "" : `+998 ${digitsOnly}`;
-            }
-            setInvitePhone(val);
+            setInvitePhone(formatUzPhone(e.target.value));
             if (inviteError) setInviteError("");
           }} inputMode="numeric" placeholder="+998 90 123 45 67"
           style={{ width: "100%", border: `1px solid ${c.border}`, borderRadius: 10, padding: "11px 14px", fontSize: 13.5, background: c.surfaceAlt, color: c.textPrimary, marginBottom: 12, boxSizing: "border-box" }}
@@ -210,7 +233,7 @@ export default function Settings({ onNavigate, onOpenPrintReport }) {
         confirmLabel={t("removeAccess")}
         cancelLabel={t("cancel")}
         onCancel={() => setGuardianToRemove(null)}
-        onConfirm={() => { revokeGuardian(guardianToRemove.id); showToast(t("accessRevoked")); setGuardianToRemove(null); }}
+        onConfirm={() => { showToast(revokeGuardian(guardianToRemove.id) ? t("accessRevoked") : t("cannotRemoveLastGuardian")); setGuardianToRemove(null); }}
       />
     </div>
   );

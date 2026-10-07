@@ -33,7 +33,7 @@ export default {
 
   // Attendance
   attendanceTitle: "Attendance", present: "Present", absent: "Absent", late: "Late", excused: "Excused", noClass: "No class",
-  attendanceRate: "Attendance rate", vsLastMonth: "vs last month", vsGroupAvg: "vs group average",
+  attendanceRate: "Attendance rate", vsGroupAvg: "vs group average",
   longestStreak: "Longest streak this term", tapDayHint: "Tap any day for details",
   attendanceGoodMsg: "Excellent attendance this month.", attendanceDropMsg: "Attendance decreased compared to last month.",
   thisMonth: "This month", lastMonth: "Last month", change: "Change",
@@ -45,12 +45,14 @@ export default {
   performanceChange: "vs previous assessment", bestMonth: "Best month", lowestMonth: "Lowest month",
   average: "Average", best: "Best", lowest: "Lowest", trend: "Trend",
   monthlyResults: "Monthly results", tapMonthHint: "Tap a month to see that month's results",
-  aboveGroupAverage: "Above group average", belowGroupAverage: "Below group average", atGroupAverage: "At group average",
+  aboveGroupAverage: "Above group average", belowGroupAverage: "Below group average", atGroupAverage: "At group average", noComparisonData: "No comparison data",
   byPercent: "by {pct}%",
 
   // Homework
   homeworkTitle: "Homework", homeworkSubtitle: "Assigned by the center",
   all: "All", pending: "Pending", completed: "Completed", overdue: "Overdue", dueToday: "Due today", dueTomorrow: "Due tomorrow",
+  completedLate: "Submitted late",
+  lateHw: "Late",
   filterBySubject: "Subject", filterByDate: "Date", completionRate: "Completion rate", onTimeRate: "On-time rate", totalAssignments: "Total assignments",
   noHomework: "No homework is currently assigned.",
 
@@ -98,7 +100,7 @@ export default {
   appLock: "PIN lock", changePin: "Change PIN", biometric: "Biometric login (coming soon)",
   setPin: "Set a PIN", enterPin: "Enter a 4-digit PIN", confirmPin: "Confirm PIN", pinMismatch: "PINs don't match",
   enterYourPin: "Enter your PIN to unlock", unlock: "Unlock", wrongPin: "Incorrect PIN, try again", lockNow: "Lock app now (test)",
-  downloadData: "Download my data", downloadDataDesc: "Export your child's full history as an Excel file", dataDownloaded: "Data file downloaded",
+  downloadData: "Download my data", downloadDataDesc: "Export your child's full history as an Excel file", dataDownloaded: "Data file downloaded", dataDownloadFailed: "Couldn't create the file. Please try again.",
   privacyStatement: "Only you and center staff can see this data. It is never sold or shared with third parties.",
 
   // Guardians
@@ -106,9 +108,10 @@ export default {
   roleMother: "Mother", roleFather: "Father", roleGuardian: "Guardian",
   inviteGuardianTitle: "Invite a guardian", fullName: "Full name", relationship: "Relationship", invite: "Invite",
   errorNameRequired: "Name is required.", errorPhoneRequired: "Phone number is required.",
+  yourName: "Your name", yourNamePlaceholder: "e.g. Dilnoza",
   allPinned: "Everything is already pinned to your bottom bar.",
   removeGuardianTitle: "Remove guardian access?", removeGuardianBody: "{name} will no longer be able to see {child}'s information.",
-  cancel: "Cancel", removeAccess: "Remove access", accessRevoked: "Access revoked", inviteSent: "Invite link copied",
+  cancel: "Cancel", removeAccess: "Remove access", accessRevoked: "Access revoked", cannotRemoveLastGuardian: "A student must have at least one guardian.", inviteSent: "Invite link copied",
 
   // Generic states
   loading: "Loading…", retry: "Retry", goBack: "Go back", reload: "Reload",
@@ -214,4 +217,20 @@ export default {
   noRecentActivity: "No recent activity yet",
   insightsNeedGrades: "Insights need at least one grade entry. This will fill in once a teacher enters a score.",
   noAssessmentThisMonth: "No assessment this month",
+  // Keys the Parent screens use that previously lived ONLY in the main
+  // (staff-side) dictionary. The running app reads a merged dictionary, so
+  // users never saw a raw key — but this dictionary wasn't self-contained,
+  // which would break if the parent app were ever extracted or reused on
+  // its own. Same text as the main dictionary, so the merged result (and
+  // the staff screens that share some of these) is unchanged.
+  back: "Back",
+  guardianAlreadyAdded: "This phone number has already been added.",
+  noGradesYet: "No grades yet",
+  otpTitle: "Confirm your phone",
+  overallSingleMonthSentence: "{name}'s overall score for {month} is {score}%. A trend will show from next month.",
+  resendCode: "Resend code",
+  singleMonthNote: "Only one month of data so far",
+  trendNeedsMonths: "A trend appears once there are two months of data",
+  undo: "Undo",
+  notificationDeleted: "Notification deleted",
 };

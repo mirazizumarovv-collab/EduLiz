@@ -4,7 +4,7 @@ import { useApp } from "../context/AppContext.jsx";
 import { getNotifications } from "./data/notifications.js";
 import { getAttendance } from "./data/attendance.js";
 import { attendanceRate, getAlertableUnreadCount } from "./utils/calculations.js";
-import { CURRENT_MONTH, CURRENT_TIME_STR } from "./constants/months.js";
+import { currentMonthAbbr } from "../utils/clock.js";
 import { AppShell } from "./components/layout/AppShell.jsx";
 import { Header } from "./components/layout/Header.jsx";
 import { BottomNav } from "./components/layout/BottomNav.jsx";
@@ -145,13 +145,13 @@ function PinLockScreen() {
 }
 
 function ChildSwitcherSheet({ open, onClose }) {
-  const { t, studentList, selectedStudentId, setSelectedStudentId, setScreen, notifPrefs, quietHours, readNotifIds, deletedNotifIds } = useApp();
+  const { t, studentList, selectedStudentId, setSelectedStudentId, setScreen, notifPrefs, quietHours, readNotifIds, deletedNotifIds, today, nowTime } = useApp();
   return (
     <BottomSheet open={open} onClose={onClose} title={t("switchChild")}>
       {studentList.map(s => {
-        const sDays = getAttendance(s.id)[CURRENT_MONTH] || [];
+        const sDays = getAttendance(s.id)[currentMonthAbbr(today)] || [];
         const sRate = sDays.length ? attendanceRate(sDays) : null;
-        const sUnread = getAlertableUnreadCount(getNotifications(s.id), notifPrefs, quietHours, CURRENT_TIME_STR, readNotifIds, deletedNotifIds);
+        const sUnread = getAlertableUnreadCount(getNotifications(s.id), notifPrefs, quietHours, nowTime, readNotifIds, deletedNotifIds);
         const subParts = [`${s.grade}`];
         if (sRate !== null) subParts.push(`${t("attendanceRate")}: ${sRate}%`);
         if (sUnread > 0) subParts.push(`${sUnread} ${t("navNotifications").toLowerCase()}`);
@@ -173,9 +173,9 @@ function ChildSwitcherSheet({ open, onClose }) {
 
 export default function ParentApp() {
   const {
-    screen, setScreen, locked, toast, registered, setRegistered, setParentPhone,
+    screen, setScreen, locked, toast, registered, setRegistered, setParentPhone, setParentName, setParentRole,
     selectedStudent, notifPrefs, quietHours, readNotifIds, deletedNotifIds, lang, t,
-    onboarded, setOnboarded, navItems,
+    onboarded, setOnboarded, navItems, nowTime,
   } = useApp();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [printReportOpen, setPrintReportOpen] = useState(false);
@@ -184,7 +184,7 @@ export default function ParentApp() {
     return <Onboarding onFinish={() => setOnboarded(true)} />;
   }
   if (!registered) {
-    return <Registration onRegister={(phone) => { setParentPhone(phone); setRegistered(true); setScreen("dashboard"); }} onBack={() => setOnboarded(false)} />;
+    return <Registration onRegister={(phone, name, role) => { setParentPhone(phone); setParentName(name); setParentRole(role); setRegistered(true); setScreen("dashboard"); }} onBack={() => setOnboarded(false)} />;
   }
   if (locked) {
     return <PinLockScreen />;
@@ -194,7 +194,7 @@ export default function ParentApp() {
   }
 
   const ScreenComponent = SCREEN_MAP[screen] || Dashboard;
-  const hasUnreadNotifications = getAlertableUnreadCount(getNotifications(selectedStudent.id), notifPrefs, quietHours, CURRENT_TIME_STR, readNotifIds, deletedNotifIds) > 0;
+  const hasUnreadNotifications = getAlertableUnreadCount(getNotifications(selectedStudent.id), notifPrefs, quietHours, nowTime, readNotifIds, deletedNotifIds) > 0;
   const isTopLevelScreen = navItems.includes(screen) || screen === "dashboard";
 
   return (

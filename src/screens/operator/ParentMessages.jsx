@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useApp } from "../../context/AppContext.jsx";
 
 function formatTime(iso) {
@@ -7,12 +7,19 @@ function formatTime(iso) {
 }
 
 export default function ParentMessages() {
-  const { t, theme, students, messageThreads, sendMessage } = useApp();
+  const { t, theme, students, messageThreads, sendMessage, markThreadReadByOperator } = useApp();
   const c = theme.colors;
   const [selectedId, setSelectedId] = useState(students[0]?.id || null);
   const [draft, setDraft] = useState("");
 
   const thread = messageThreads[selectedId] || [];
+
+  // Opening a thread is what reading it means — also re-runs if a new
+  // parent message arrives while this same thread is already open, so it
+  // doesn't sit unread just because the operator was already looking here.
+  useEffect(() => {
+    if (selectedId) markThreadReadByOperator(selectedId);
+  }, [selectedId, thread, markThreadReadByOperator]);
 
   const handleSend = () => {
     if (!draft.trim() || !selectedId) return;

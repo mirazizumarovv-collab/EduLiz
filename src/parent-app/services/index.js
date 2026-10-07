@@ -4,6 +4,8 @@ import { getHomework } from "../data/homework.js";
 import { getPayments } from "../data/payments.js";
 import { getNotifications } from "../data/notifications.js";
 import { bridge } from "../data/liveBridge.js";
+import { timestampISO } from "../../utils/clock.js";
+import { createId } from "../../utils/ids.js";
 
 // Simulated network latency so loading states are actually exercised.
 const delay = (ms = 350) => new Promise(resolve => setTimeout(resolve, ms));
@@ -47,6 +49,6 @@ export const messageService = {
   // beyond this browser's data — no fake "message sent to a real server" state.
   send: async (text) => {
     await delay(300);
-    return { id: `local-${Date.now()}`, from: "parent", text, time: new Date().toISOString(), status: "queued" };
+    return { id: createId("local"), from: "parent", text, time: timestampISO(), status: "queued" };
   },
 };

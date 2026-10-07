@@ -3,7 +3,7 @@ import { GraduationCap, Building2, Users, Headset } from "lucide-react";
 import { useApp } from "../context/AppContext.jsx";
 
 export default function RoleSelect() {
-  const { t, theme, setRole, teachers, setCurrentTeacherId } = useApp();
+  const { t, theme, setRole, teachers, setCurrentTeacherId, sessionNotice, clearSessionNotice } = useApp();
   const c = theme.colors;
   const [pendingRole, setPendingRole] = useState(null);
 
@@ -48,11 +48,17 @@ export default function RoleSelect() {
         <div style={{ fontSize: 19, fontWeight: 800, color: c.textPrimary }}>{t("centerName")}</div>
         <div style={{ fontSize: 13, color: c.textSecondary, marginTop: 6 }}>{t("chooseRole")}</div>
       </div>
+      {sessionNotice && (
+        <div style={{ width: "100%", maxWidth: 380, background: c.surface, border: `1px solid ${c.danger}`, borderRadius: 12, padding: "12px 14px", marginBottom: 14, display: "flex", gap: 10, alignItems: "flex-start" }}>
+          <div style={{ flex: 1, fontSize: 12.5, color: c.textPrimary, lineHeight: 1.5 }}>{t(sessionNotice)}</div>
+          <button onClick={clearSessionNotice} aria-label={t("cancel")} style={{ border: "none", background: "transparent", color: c.textSecondary, cursor: "pointer", fontSize: 16, lineHeight: 1, padding: 0 }}>×</button>
+        </div>
+      )}
       <div style={{ width: "100%", maxWidth: 380, display: "flex", flexDirection: "column", gap: 10 }}>
         {roleCards.map(r => (
           <button
             key={r.key}
-            onClick={() => (r.key === "teacher" ? setPendingRole(r.key) : setRole(r.key))}
+            onClick={() => { clearSessionNotice(); if (r.key === "teacher") setPendingRole(r.key); else setRole(r.key); }}
             style={{
               display: "flex", alignItems: "center", gap: 14, width: "100%", textAlign: "left",
               border: "none", background: c.surface, borderRadius: 14, padding: "16px 18px", cursor: "pointer",

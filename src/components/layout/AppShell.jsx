@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { Menu, X, LogOut, Sun, Moon, ArrowLeft } from "lucide-react";
 import { useApp } from "../../context/AppContext.jsx";
+import { Toast } from "../../parent-app/components/common/Feedback.jsx";
 
 export function AppShell({ navItems, activeScreen, onNavigate, roleLabel, roleName, children }) {
-  const { theme, themeMode, setThemeMode, logout, t } = useApp();
+  const { theme, themeMode, setThemeMode, logout, t, toast } = useApp();
   const c = theme.colors;
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -36,7 +37,7 @@ export function AppShell({ navItems, activeScreen, onNavigate, roleLabel, roleNa
       <div className="staff-sidebar" style={{ width: 240, flexShrink: 0, background: c.surface, borderRight: `1px solid ${c.border}`, padding: 18, display: "none", flexDirection: "column" }}>
         <div style={{ marginBottom: 22 }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: c.textPrimary }}>{t("appName")}</div>
-          <div style={{ fontSize: 11.5, color: c.textSecondary, marginTop: 2 }}>{roleLabel} · {roleName}</div>
+          <div style={{ fontSize: 11.5, color: c.textSecondary, marginTop: 2 }}>{roleName ? `${roleLabel} · ${roleName}` : roleLabel}</div>
         </div>
         <div style={{ flex: 1 }}>
           <NavList />
@@ -51,7 +52,7 @@ export function AppShell({ navItems, activeScreen, onNavigate, roleLabel, roleNa
 
       {/* Mobile top bar */}
       <div className="staff-topbar" style={{ position: "fixed", top: 0, left: 0, right: 0, height: 56, background: c.surface, borderBottom: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px", zIndex: 30 }}>
-        <button onClick={() => setDrawerOpen(true)} style={{ border: "none", background: "transparent", color: c.textPrimary, cursor: "pointer", display: "flex" }}>
+        <button onClick={() => setDrawerOpen(true)} aria-label={t("menu")} style={{ border: "none", background: "transparent", color: c.textPrimary, cursor: "pointer", display: "flex" }}>
           <Menu size={22} />
         </button>
         <div style={{ fontSize: 14, fontWeight: 800, color: c.textPrimary }}>{t("appName")}</div>
@@ -64,9 +65,9 @@ export function AppShell({ navItems, activeScreen, onNavigate, roleLabel, roleNa
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: c.textPrimary }}>{t("appName")}</div>
-                <div style={{ fontSize: 11, color: c.textSecondary }}>{roleLabel} · {roleName}</div>
+                <div style={{ fontSize: 11, color: c.textSecondary }}>{roleName ? `${roleLabel} · ${roleName}` : roleLabel}</div>
               </div>
-              <button onClick={() => setDrawerOpen(false)} style={{ border: "none", background: "transparent", color: c.textPrimary, cursor: "pointer", display: "flex" }}><X size={20} /></button>
+              <button onClick={() => setDrawerOpen(false)} aria-label={t("closeLabel")} style={{ border: "none", background: "transparent", color: c.textPrimary, cursor: "pointer", display: "flex" }}><X size={20} /></button>
             </div>
             <div style={{ flex: 1 }}>
               <NavList onItemClick={() => setDrawerOpen(false)} />
@@ -88,7 +89,7 @@ export function AppShell({ navItems, activeScreen, onNavigate, roleLabel, roleNa
             aria-label={t("back")}
             style={{ display: "flex", alignItems: "center", gap: 6, border: "none", background: "transparent", color: c.textSecondary, cursor: "pointer", padding: "0 0 14px", fontSize: 13, fontWeight: 600 }}
           >
-            <ArrowLeft size={17} /> {t("navDashboard")}
+            <ArrowLeft size={17} /> {t("navHomeStaff")}
           </button>
         )}
         {children}
@@ -101,6 +102,7 @@ export function AppShell({ navItems, activeScreen, onNavigate, roleLabel, roleNa
           .staff-content { padding: 28px 32px !important; }
         }
       `}</style>
+      <Toast text={toast} />
     </div>
   );
 }

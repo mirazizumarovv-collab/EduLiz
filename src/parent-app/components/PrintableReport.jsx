@@ -7,6 +7,7 @@ import { getHomework } from "../data/homework.js";
 import { MONTH_NAMES } from "../constants/months.js";
 import { computeParentAnalytics } from "../utils/parentAnalytics.js";
 import { subj } from "../utils/subjectNames.js";
+import { bridgeToday } from "../data/liveBridge.js";
 
 const SUBJECT_COLORS = ["#3A6EA5", "#3FA968", "#D4A537", "#C65D4B"];
 
@@ -25,7 +26,7 @@ export function PrintableReport({ student, lang, t, onClose }) {
     );
   }
 
-  const a = computeParentAnalytics({ studentId: student.id, grades, attendanceData, homework });
+  const a = computeParentAnalytics({ studentId: student.id, grades, attendanceData, homework, today: bridgeToday() });
 
   // One shared dataset — every subject reads its score from the SAME row per
   // month, so Recharts' X-axis and all lines are guaranteed to line up
@@ -39,10 +40,12 @@ export function PrintableReport({ student, lang, t, onClose }) {
   const homeworkChartData = a.hwByMonth.map(r => ({ month: mn(r.month), pct: r.pct }));
 
   const overallDir = a.overallDeltaSinceFirst >= 0 ? t("trendImproved") : t("trendDeclined");
-  const overallTrendText = t("overallTrendSentence", {
-    name: student.name, dir: overallDir, first: a.overallFirst, firstMonth: mn(a.firstGradeMonth),
-    last: a.overallLast, lastMonth: mn(a.lastGradeMonth), sign: a.overallDeltaSinceFirst >= 0 ? "+" : "", delta: a.overallDeltaSinceFirst,
-  });
+  const overallTrendText = a.gradeMonths.length < 2
+    ? t("overallSingleMonthSentence", { name: student.name, month: mn(a.lastGradeMonth), score: a.overallLast })
+    : t("overallTrendSentence", {
+        name: student.name, dir: overallDir, first: a.overallFirst, firstMonth: mn(a.firstGradeMonth),
+        last: a.overallLast, lastMonth: mn(a.lastGradeMonth), sign: a.overallDeltaSinceFirst >= 0 ? "+" : "", delta: a.overallDeltaSinceFirst,
+      });
   const decliningSubject = a.subjectTrends.find(s => {
     const full = grades.find(g => g.name === s.name);
     return full.monthly.slice(-2).reduce((x, y, i, arr) => (i === 1 ? y.score - arr[0].score : 0), 0) < 0;
@@ -78,11 +81,11 @@ export function PrintableReport({ student, lang, t, onClose }) {
   if (a.hwStatsOverall.onTimeRate < 85) recommendations.push(t("recTextHw", { rate: a.hwStatsOverall.onTimeRate }));
   if (recommendations.length === 0) recommendations.push(t("recTextGood", { name: student.name }));
 
-  const overallPrevMonthKey = a.gradeMonths[a.gradeMonths.length - 2];
+  const overallPrevMonthKey = a.gradeMonths.length > 1 ? a.gradeMonths[a.gradeMonths.length - 2] : null;
   const comparisonRows = [
-    { label: t("overallLabel"), prev: a.overallPrevMonth, curr: a.overallLast, delta: a.overallMoMDelta, prevMonth: overallPrevMonthKey, currMonth: a.lastGradeMonth },
-    { label: t("attendanceRate"), prev: a.attPrevMonth, curr: a.attLast, delta: a.attMoMDelta, prevMonth: a.attPrevMonthKey, currMonth: a.attLastMonth },
-    { label: t("homeworkPerformance"), prev: a.hwPrevMonthPct, curr: a.hwCurrentMonthPct, delta: a.hwMoMDelta, prevMonth: a.hwPrevMonthKey, currMonth: a.hwLastMonth },
+    { label: t("overallLabel"), prev: a.overallPrevMonth, curr: a.overallLast, delta: a.overallMoMDelta, prevMonth: overallPrevMonthKey, currMonth: a.lastGradeMonth, hasPrev: a.overallHasPrev, currIsNew: a.overallLastIsNew },
+    { label: t("attendanceRate"), prev: a.attPrevMonth, curr: a.attLast, delta: a.attMoMDelta, prevMonth: a.attPrevMonthKey, currMonth: a.attLastMonth, hasPrev: a.attHasPrev },
+    { label: t("homeworkPerformance"), prev: a.hwPrevMonthPct, curr: a.hwCurrentMonthPct, delta: a.hwMoMDelta, prevMonth: a.hwPrevMonthKey, currMonth: a.hwLastMonth, hasPrev: a.hwHasPrev },
   ];
 
   return (
@@ -152,13 +155,13 @@ export function PrintableReport({ student, lang, t, onClose }) {
             <tr key={row.label} style={{ borderBottom: "1px solid #E4ECF4" }}>
               <td style={{ padding: 8 }}>{row.label}</td>
               <td style={{ padding: 8, textAlign: "right", color: "#6C82A0" }}>
-                {row.prevMonth ? `${mn(row.prevMonth)} ` : ""}{row.prev !== null ? `${row.prev}%` : t("noData")}
+                {row.hasPrev === false ? "—" : `${row.prevMonth ? mn(row.prevMonth) + " " : ""}${row.prev !== null ? row.prev + "%" : t("noData")}`}
               </td>
               <td style={{ padding: 8, textAlign: "right", fontWeight: 700 }}>
-                {row.currMonth ? `${mn(row.currMonth)} ` : ""}{row.curr !== null ? `${row.curr}%` : t("noData")}
+                {row.currMonth ? `${mn(row.currMonth)} ` : ""}{row.currIsNew === false ? t("noAssessmentThisMonth") : row.curr !== null ? `${row.curr}%` : t("noData")}
               </td>
-              <td style={{ padding: 8, textAlign: "right", color: (row.prev !== null && row.curr !== null && row.delta >= 0) ? "#3FA968" : "#C65D4B", fontWeight: 700 }}>
-                {(row.prev !== null && row.curr !== null) ? `${row.delta > 0 ? "+" : ""}${row.delta}%` : "—"}
+              <td style={{ padding: 8, textAlign: "right", color: (row.currIsNew !== false && row.hasPrev !== false && row.prev !== null && row.curr !== null && row.delta >= 0) ? "#3FA968" : "#C65D4B", fontWeight: 700 }}>
+                {(row.currIsNew !== false && row.hasPrev !== false && row.prev !== null && row.curr !== null) ? `${row.delta > 0 ? "+" : ""}${row.delta}%` : "—"}
               </td>
             </tr>
           ))}
@@ -228,7 +231,7 @@ export function PrintableReport({ student, lang, t, onClose }) {
             <tr key={s.name} style={{ borderBottom: "1px solid #E4ECF4" }}>
               <td style={{ padding: 8 }}>{subj(lang, s.name)}</td>
               <td style={{ padding: 8 }}>{s.score}%</td>
-              <td style={{ padding: 8 }}>{s.classAvg}%</td>
+              <td style={{ padding: 8 }}>{s.hasClassComparison ? `${s.classAvg}%` : "—"}</td>
               <td style={{ padding: 8, color: s.monthTrend >= 0 ? "#3FA968" : "#C65D4B", fontWeight: 700 }}>
                 {s.monthTrend >= 0 ? "+" : ""}{s.monthTrend}%
               </td>

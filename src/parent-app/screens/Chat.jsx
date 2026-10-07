@@ -1,49 +1,34 @@
 import React, { useState } from "react";
 import { useApp } from "../../context/AppContext.jsx";
-import { useAsyncData } from "../hooks/useAsyncData.js";
-import { messageService } from "../services/index.js";
-import { LoadingSkeleton, ErrorState, EmptyState } from "../components/common/Feedback.jsx";
+import { EmptyState } from "../components/common/Feedback.jsx";
 import { formatTime, formatShortDate } from "../utils/formatters.js";
 import { CENTER_REPLY_TIME_HOURS } from "../constants/config.js";
-import { CURRENT_DATE_STR, CURRENT_TIME_STR } from "../constants/months.js";
+import { addDaysISO } from "../../utils/clock.js";
 
 function isSameDay(isoA, isoB) {
   return isoA.slice(0, 10) === isoB.slice(0, 10);
 }
-function dayLabel(iso, lang, t) {
-  if (isSameDay(iso, CURRENT_DATE_STR)) return t("today").toUpperCase();
-  const yesterday = new Date(CURRENT_DATE_STR);
-  yesterday.setDate(yesterday.getDate() - 1);
-  if (isSameDay(iso, yesterday.toISOString())) return t("yesterday").toUpperCase();
+function dayLabel(iso, lang, t, today) {
+  if (isSameDay(iso, today)) return t("today").toUpperCase();
+  if (isSameDay(iso, addDaysISO(today, -1))) return t("yesterday").toUpperCase();
   return formatShortDate(iso, lang).toUpperCase();
 }
 
 export default function Chat() {
-  const { t, theme, lang, selectedStudent, sendMessage } = useApp();
+  const { t, theme, lang, selectedStudent, messageThreads, sendMessage, today } = useApp();
   const c = theme.colors;
-  const { data, loading, error, reload } = useAsyncData(() => messageService.getThread(), [selectedStudent?.id]);
-  const [messages, setMessages] = useState(null);
   const [draft, setDraft] = useState("");
-  const [sending, setSending] = useState(false);
 
-  const list = messages || data || [];
+  // Reads directly from shared context state — the SAME array Operator's
+  // Messages screen reads and writes — so this re-renders immediately
+  // whenever a new message arrives, with the chat screen already open, not
+  // just after a remount or reload.
+  const list = messageThreads[selectedStudent?.id] || [];
 
-  if (loading && !messages) return <div style={{ padding: 18 }}><LoadingSkeleton rows={4} /></div>;
-  if (error) return <ErrorState t={t} message={t("failedToLoad")} onRetry={reload} />;
-
-  const send = async () => {
-    if (!draft.trim() || sending || !selectedStudent) return;
-    const text = draft.trim();
+  const send = () => {
+    if (!draft.trim() || !selectedStudent) return;
+    sendMessage(selectedStudent.id, draft.trim(), "parent");
     setDraft("");
-    setSending(true);
-    const queued = { id: `pending-${Date.now()}`, from: "parent", text, time: `${CURRENT_DATE_STR}T${CURRENT_TIME_STR}:00`, status: "sending" };
-    setMessages([...list, queued]);
-    await messageService.send(text);
-    // Persist into the SAME shared thread Operator/Admin read — this is
-    // what makes it a real two-way channel, not just a local echo.
-    sendMessage(selectedStudent.id, text, "parent");
-    setMessages(prev => prev.map(m => (m.id === queued.id ? { ...queued, status: "delivered" } : m)));
-    setSending(false);
   };
 
   // Build a render list: a date-separator pill whenever the day changes, and
@@ -53,7 +38,7 @@ export default function Chat() {
   list.forEach((m, i) => {
     const dayKey = m.time.slice(0, 10);
     if (dayKey !== lastDayKey) {
-      renderItems.push({ type: "separator", label: dayLabel(m.time, lang, t) });
+      renderItems.push({ type: "separator", label: dayLabel(m.time, lang, t, today) });
       lastDayKey = dayKey;
     }
     const next = list[i + 1];
@@ -120,7 +105,7 @@ export default function Chat() {
           placeholder={t("chatPlaceholder")}
           style={{ flex: 1, border: `1px solid ${c.border}`, borderRadius: 20, padding: "11px 14px", fontSize: 13, background: c.surfaceAlt, color: c.textPrimary, outline: "none" }}
         />
-        <button onClick={send} disabled={sending} style={{ border: "none", background: c.surfaceStrong, color: c.onAccent, borderRadius: 20, padding: "0 18px", fontWeight: 700, fontSize: 12.5, cursor: sending ? "default" : "pointer", opacity: sending ? 0.6 : 1 }}>
+        <button onClick={send} style={{ border: "none", background: c.surfaceStrong, color: c.onAccent, borderRadius: 20, padding: "0 18px", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>
           {t("send")}
         </button>
       </div>

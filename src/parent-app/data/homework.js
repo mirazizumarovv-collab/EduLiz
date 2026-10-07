@@ -1,36 +1,49 @@
-import { bridge } from "./liveBridge.js";
+import { bridge, bridgeToday } from "./liveBridge.js";
+import { homeworkFor } from "./studentHistory.js";
 
 const MONTH_ABBREV = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+function submissionFor(hw, studentId) {
+  return (bridge.homeworkSubmissions[hw.id] || {})[studentId] || null;
+}
+
 function statusFor(hw, studentId) {
-  const done = !!(bridge.homeworkSubmissions[hw.id] || {})[studentId];
-  if (done) return "completed";
-  return hw.dueDate < bridge.currentDateStr ? "overdue" : "pending";
+  if (submissionFor(hw, studentId)) return "completed";
+  return hw.dueDate < bridgeToday() ? "overdue" : "pending";
 }
 
 export function getHomework(studentId) {
   const student = bridge.students.find(s => s.id === studentId);
-  if (!student || !student.groupId) return { pending: [], history: [] };
-  const group = bridge.groups.find(g => g.id === student.groupId);
-  const list = bridge.homeworkRecords[student.groupId] || [];
+  if (!student) return { pending: [], history: [] };
+  // Everything given to a group while this student was in it — including a
+  // group they have since left. ISO dueDate strings sort correctly as plain
+  // strings — ascending here (soonest first), reversed below for history.
+  const list = homeworkFor(studentId).sort((a, b) => a.hw.dueDate.localeCompare(b.hw.dueDate));
 
   const pending = [];
   const history = [];
-  list.forEach(hw => {
+  list.forEach(({ hw, groupId }) => {
+    const group = bridge.groups.find(g => g.id === groupId);
     const status = statusFor(hw, studentId);
-    const d = new Date(hw.dueDate);
+    // Read straight off the "YYYY-MM-DD" text: a Date would parse it as
+    // midnight UTC, which is still the previous day in zones behind UTC.
+    const month = MONTH_ABBREV[Number(hw.dueDate.slice(5, 7)) - 1];
+    const day = Number(hw.dueDate.slice(8, 10));
+    const ym = hw.dueDate.slice(0, 7); // month AND year, so analytics can tell two Octobers apart
     if (status === "pending") {
-      pending.push({ id: hw.id, subject: group?.subject || "—", title: hw.title, due: hw.dueDate, status: "pending" });
+      pending.push({ id: hw.id, month, ym, day, subject: group?.subject || "—", title: hw.title, due: hw.dueDate, status: "pending" });
     } else {
-      // No per-submission timestamp is tracked in this v1 (see README), so
-      // a completed item is shown as on-time — a stated simplification,
-      // not a claim about exactly when it was turned in.
+      // Genuine on-time status: compares the real submission date (recorded
+      // when the teacher marked it complete) against the real due date —
+      // not an assumption.
+      const submission = submissionFor(hw, studentId);
+      const onTime = status === "completed" ? submission.submittedAt <= hw.dueDate : undefined;
       history.push({
-        id: hw.id, month: MONTH_ABBREV[d.getMonth()], day: d.getDate(),
+        id: hw.id, month, ym, day, due: hw.dueDate,
         title: hw.title, subject: group?.subject || "—", status,
-        onTime: status === "completed" ? true : undefined,
+        onTime,
       });
     }
   });
-  return { pending, history };
+  return { pending, history: history.reverse() };
 }

@@ -3,8 +3,12 @@ import { LOCALE_MAP } from "../constants/months.js";
 export function formatDate(dateInput, lang, opts = {}) {
   const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
   const locale = LOCALE_MAP[lang] || "en-US";
+  // A date-only string ("2026-09-08") parses as midnight UTC; printing that in a
+  // zone behind UTC would show the PREVIOUS day. Format it in UTC so the
+  // calendar day on screen is the calendar day in the data.
+  const dateOnly = typeof dateInput === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateInput);
   try {
-    return new Intl.DateTimeFormat(locale, { year: "numeric", month: "long", day: "numeric", ...opts }).format(date);
+    return new Intl.DateTimeFormat(locale, { year: "numeric", month: "long", day: "numeric", ...(dateOnly ? { timeZone: "UTC" } : {}), ...opts }).format(date);
   } catch {
     // Some browsers lack full uz-UZ locale data — fall back to a manual ISO-ish format.
     return date.toISOString().slice(0, 10);

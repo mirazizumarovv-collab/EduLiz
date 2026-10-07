@@ -3,14 +3,14 @@
 export const messageThreads = {
   aisha: [
     { id: "m1", from: "center", text: "Hello! Aisha did well on today's math quiz.", time: "2026-09-05T10:02:00" },
-    { id: "m2", from: "parent", text: "Thank you! Will she have homework this week?", time: "2026-09-05T10:05:00" },
+    { id: "m2", from: "parent", text: "Thank you! Will she have homework this week?", time: "2026-09-05T10:05:00", readByOperator: true },
     { id: "m3", from: "center", text: "Yes, worksheet 4 is due Friday.", time: "2026-09-05T10:06:00" },
     { id: "m4", from: "center", text: "Good morning! Just a reminder about tomorrow's test.", time: "2026-09-08T08:15:00" },
     { id: "m5", from: "center", text: "Please make sure Aisha reviews chapters 3-4 tonight.", time: "2026-09-08T08:16:00" },
-    { id: "m6", from: "parent", text: "Thank you for letting us know!", time: "2026-09-08T08:30:00" },
+    { id: "m6", from: "parent", text: "Thank you for letting us know!", time: "2026-09-08T08:30:00", readByOperator: false },
   ],
   umar: [
-    { id: "u1", from: "parent", text: "Is Umar keeping up with the group?", time: "2026-09-06T09:00:00" },
+    { id: "u1", from: "parent", text: "Is Umar keeping up with the group?", time: "2026-09-06T09:00:00", readByOperator: false },
   ],
   "aisha-friend-1": [],
   "aisha-friend-2": [],

@@ -27,7 +27,7 @@ export default {
   connect: "Подключить", connectSuccess: "Ребёнок подключён", connectError: "Ученик с таким кодом не найден. Уточните код в центре и попробуйте снова.",
 
   attendanceTitle: "Посещаемость", present: "Присутствовал", absent: "Отсутствовал", late: "Опоздал", excused: "Уважительная причина", noClass: "Нет урока",
-  attendanceRate: "Процент посещаемости", vsLastMonth: "по сравнению с прошлым месяцем", vsGroupAvg: "по сравнению со средним по группе",
+  attendanceRate: "Процент посещаемости", vsGroupAvg: "по сравнению со средним по группе",
   longestStreak: "Самая длинная серия за четверть", tapDayHint: "Нажмите на день для подробностей",
   attendanceGoodMsg: "Отличная посещаемость в этом месяце.", attendanceDropMsg: "Посещаемость снизилась по сравнению с прошлым месяцем.",
   thisMonth: "Этот месяц", lastMonth: "Прошлый месяц", change: "Изменение",
@@ -38,11 +38,13 @@ export default {
   performanceChange: "по сравнению с прошлой работой", bestMonth: "Лучший месяц", lowestMonth: "Самый слабый месяц",
   average: "Средний", best: "Лучший", lowest: "Худший", trend: "Динамика",
   monthlyResults: "Результаты по месяцам", tapMonthHint: "Нажмите на месяц, чтобы увидеть результаты",
-  aboveGroupAverage: "Выше среднего по группе", belowGroupAverage: "Ниже среднего по группе", atGroupAverage: "На уровне среднего по группе",
+  aboveGroupAverage: "Выше среднего по группе", belowGroupAverage: "Ниже среднего по группе", atGroupAverage: "На уровне среднего по группе", noComparisonData: "Нет данных для сравнения",
   byPercent: "на {pct}%",
 
   homeworkTitle: "Домашнее задание", homeworkSubtitle: "Назначено центром",
   all: "Все", pending: "В процессе", completed: "Выполнено", overdue: "Просрочено", dueToday: "Сегодня", dueTomorrow: "Завтра",
+  completedLate: "Сдано с опозданием",
+  lateHw: "С опозданием",
   filterBySubject: "Предмет", filterByDate: "Дата", completionRate: "Процент выполнения", onTimeRate: "Процент своевременности", totalAssignments: "Всего заданий",
   noHomework: "Домашних заданий пока нет.",
 
@@ -85,16 +87,17 @@ export default {
   appLock: "PIN-блокировка", changePin: "Изменить PIN", biometric: "Вход по биометрии (скоро)",
   setPin: "Установите PIN", enterPin: "Введите 4-значный PIN", confirmPin: "Подтвердите PIN", pinMismatch: "PIN не совпадает",
   enterYourPin: "Введите PIN, чтобы разблокировать", unlock: "Разблокировать", wrongPin: "Неверный PIN, попробуйте снова", lockNow: "Заблокировать сейчас (тест)",
-  downloadData: "Скачать мои данные", downloadDataDesc: "Экспортировать полную историю ребёнка в файл Excel", dataDownloaded: "Файл данных скачан",
+  downloadData: "Скачать мои данные", downloadDataDesc: "Экспортировать полную историю ребёнка в файл Excel", dataDownloaded: "Файл данных скачан", dataDownloadFailed: "Не удалось создать файл. Попробуйте ещё раз.",
   privacyStatement: "Эти данные видят только вы и сотрудники центра. Мы никогда не продаём и не передаём их третьим лицам.",
 
   guardiansTitle: "Связанные опекуны", you: "Вы", addGuardian: "+ Пригласить опекуна",
   roleMother: "Мать", roleFather: "Отец", roleGuardian: "Опекун",
   inviteGuardianTitle: "Пригласить опекуна", fullName: "Полное имя", relationship: "Кем приходится", invite: "Пригласить",
   errorNameRequired: "Введите имя.", errorPhoneRequired: "Введите номер телефона.",
+  yourName: "Ваше имя", yourNamePlaceholder: "например, Дилноза",
   allPinned: "Всё уже закреплено на нижней панели.",
   removeGuardianTitle: "Отозвать доступ опекуна?", removeGuardianBody: "{name} больше не сможет видеть информацию о {child}.",
-  cancel: "Отмена", removeAccess: "Отозвать доступ", accessRevoked: "Доступ отозван", inviteSent: "Ссылка приглашения скопирована",
+  cancel: "Отмена", removeAccess: "Отозвать доступ", accessRevoked: "Доступ отозван", cannotRemoveLastGuardian: "У ученика должен быть хотя бы один опекун.", inviteSent: "Ссылка приглашения скопирована",
 
   loading: "Загрузка…", retry: "Повторить", goBack: "Назад", reload: "Обновить",
   noInternet: "Нет подключения к интернету", failedToLoad: "Не удалось загрузить данные", somethingWrong: "Что-то пошло не так",
@@ -197,4 +200,20 @@ export default {
   noRecentActivity: "Пока нет активности",
   insightsNeedGrades: "Для аналитики нужна хотя бы одна оценка. Появится здесь после того, как учитель выставит оценку.",
   noAssessmentThisMonth: "В этом месяце оценок не было",
+  // Keys the Parent screens use that previously lived ONLY in the main
+  // (staff-side) dictionary. The running app reads a merged dictionary, so
+  // users never saw a raw key — but this dictionary wasn't self-contained,
+  // which would break if the parent app were ever extracted or reused on
+  // its own. Same text as the main dictionary, so the merged result (and
+  // the staff screens that share some of these) is unchanged.
+  back: "Назад",
+  guardianAlreadyAdded: "Этот номер телефона уже добавлен.",
+  noGradesYet: "Пока нет оценок",
+  otpTitle: "Подтвердите телефон",
+  overallSingleMonthSentence: "Общий результат {name} за {month} — {score}%. Динамика появится со следующего месяца.",
+  resendCode: "Отправить код ещё раз",
+  singleMonthNote: "Пока данные только за один месяц",
+  trendNeedsMonths: "Тенденция появится, когда будут данные за два месяца",
+  undo: "Отменить",
+  notificationDeleted: "Уведомление удалено",
 };

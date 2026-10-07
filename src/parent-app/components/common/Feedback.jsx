@@ -5,7 +5,7 @@ import { spacing, radius, font } from "../../constants/theme.js";
 import { Button } from "./UI.jsx";
 
 export function Toast({ text }) {
-  const { theme } = useApp();
+  const { theme, toastAction, showToast } = useApp();
   if (!text) return null;
   return (
     <div
@@ -14,10 +14,18 @@ export function Toast({ text }) {
         position: "fixed", bottom: "calc(24px + env(safe-area-inset-bottom))", left: "50%", transform: "translateX(-50%)",
         background: theme.colors.surfaceStrong, color: theme.colors.onAccent, padding: "10px 18px", borderRadius: radius.pill,
         fontSize: font.size.sm, fontFamily: font.family, fontWeight: 600, zIndex: 200,
-        boxShadow: "0 8px 20px rgba(0,0,0,0.25)", whiteSpace: "nowrap", maxWidth: "92vw", overflow: "hidden", textOverflow: "ellipsis",
+        boxShadow: "0 8px 20px rgba(0,0,0,0.25)", whiteSpace: "nowrap", maxWidth: "92vw", display: "flex", alignItems: "center",
       }}
     >
-      {text}
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}>{text}</span>
+      {toastAction && (
+        <button
+          onClick={() => { toastAction.onClick(); showToast(""); }}
+          style={{ flexShrink: 0, marginLeft: 14, border: "none", background: "transparent", color: theme.colors.onAccent, fontWeight: 800, fontSize: font.size.sm, fontFamily: font.family, textDecoration: "underline", cursor: "pointer", padding: 0 }}
+        >
+          {toastAction.label}
+        </button>
+      )}
     </div>
   );
 }

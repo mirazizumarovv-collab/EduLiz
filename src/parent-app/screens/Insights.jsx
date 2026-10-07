@@ -21,12 +21,14 @@ function DeltaTag({ delta, c, positiveIsGood = true }) {
 }
 
 export default function Insights({ onOpenPrintReport }) {
-  const { t, lang, selectedStudent, theme } = useApp();
+  const { t, lang, selectedStudent, theme, attendanceRecords, gradesRecords, homeworkRecords, homeworkSubmissions, today } = useApp();
   const c = theme.colors;
 
-  const attendanceQ = useAsyncData(() => attendanceService.get(selectedStudent.id), [selectedStudent.id]);
-  const gradesQ = useAsyncData(() => gradeService.get(selectedStudent.id), [selectedStudent.id]);
-  const homeworkQ = useAsyncData(() => homeworkService.get(selectedStudent.id), [selectedStudent.id]);
+  // Live: canonical stores are in each dependency array, so this screen
+  // re-fetches the moment Teacher/Admin/Operator changes the relevant data.
+  const attendanceQ = useAsyncData(() => attendanceService.get(selectedStudent.id), [selectedStudent.id, attendanceRecords, today]);
+  const gradesQ = useAsyncData(() => gradeService.get(selectedStudent.id), [selectedStudent.id, gradesRecords, today]);
+  const homeworkQ = useAsyncData(() => homeworkService.get(selectedStudent.id), [selectedStudent.id, homeworkRecords, homeworkSubmissions, today]);
 
   const loading = attendanceQ.loading || gradesQ.loading || homeworkQ.loading;
   const error = attendanceQ.error || gradesQ.error || homeworkQ.error;
@@ -44,15 +46,17 @@ export default function Insights({ onOpenPrintReport }) {
   }
 
   const grades = gradesQ.data.map(computeSubjectDerived);
-  const a = computeParentAnalytics({ studentId: selectedStudent.id, grades, attendanceData: attendanceQ.data, homework: homeworkQ.data });
+  const a = computeParentAnalytics({ studentId: selectedStudent.id, grades, attendanceData: attendanceQ.data, homework: homeworkQ.data, today });
   const mn = (key) => MONTH_NAMES[lang][key] || key;
 
   // --- Conclusion, built from real computed signals (nothing invented) ---
   const overallDir = a.overallDeltaSinceFirst >= 0 ? t("trendImproved") : t("trendDeclined");
-  const overallTrendText = t("overallTrendSentence", {
-    name: selectedStudent.name, dir: overallDir, first: a.overallFirst, firstMonth: mn(a.firstGradeMonth),
-    last: a.overallLast, lastMonth: mn(a.lastGradeMonth), sign: a.overallDeltaSinceFirst >= 0 ? "+" : "", delta: a.overallDeltaSinceFirst,
-  });
+  const overallTrendText = a.gradeMonths.length < 2
+    ? t("overallSingleMonthSentence", { name: selectedStudent.name, month: mn(a.lastGradeMonth), score: a.overallLast })
+    : t("overallTrendSentence", {
+        name: selectedStudent.name, dir: overallDir, first: a.overallFirst, firstMonth: mn(a.firstGradeMonth),
+        last: a.overallLast, lastMonth: mn(a.lastGradeMonth), sign: a.overallDeltaSinceFirst >= 0 ? "+" : "", delta: a.overallDeltaSinceFirst,
+      });
   const decliningSubject = a.subjectTrends.find(s => (gradesQ.data.find(g => g.name === s.name).monthly.slice(-2).reduce((x, y, i, arr) => i === 1 ? y.score - arr[0].score : 0, 0)) < 0);
   const subjectNote = decliningSubject
     ? t("subjectDeclinedNote", { subject: subj(lang, decliningSubject.name) })
@@ -77,11 +81,11 @@ export default function Insights({ onOpenPrintReport }) {
   if (a.attMoMDelta < 0) recommendations.push(t("focusAttendance", { delta: Math.abs(a.attMoMDelta) }));
   if (recommendations.length === 0) recommendations.push(t("focusKeepGoing", { subject: subj(lang, a.strongest.name) }));
 
-  const overallPrevMonthKey = a.gradeMonths[a.gradeMonths.length - 2];
+  const overallPrevMonthKey = a.gradeMonths.length > 1 ? a.gradeMonths[a.gradeMonths.length - 2] : null;
   const comparisonRows = [
-    { label: t("overallLabel"), prev: a.overallPrevMonth, curr: a.overallLast, delta: a.overallMoMDelta, prevMonth: overallPrevMonthKey, currMonth: a.lastGradeMonth },
-    { label: t("attendanceRate"), prev: a.attPrevMonth, curr: a.attLast, delta: a.attMoMDelta, prevMonth: a.attPrevMonthKey, currMonth: a.attLastMonth },
-    { label: t("homeworkPerformance"), prev: a.hwPrevMonthPct, curr: a.hwCurrentMonthPct, delta: a.hwMoMDelta, prevMonth: a.hwPrevMonthKey, currMonth: a.hwLastMonth },
+    { label: t("overallLabel"), prev: a.overallPrevMonth, curr: a.overallLast, delta: a.overallMoMDelta, prevMonth: overallPrevMonthKey, currMonth: a.lastGradeMonth, hasPrev: a.overallHasPrev, currIsNew: a.overallLastIsNew },
+    { label: t("attendanceRate"), prev: a.attPrevMonth, curr: a.attLast, delta: a.attMoMDelta, prevMonth: a.attPrevMonthKey, currMonth: a.attLastMonth, hasPrev: a.attHasPrev },
+    { label: t("homeworkPerformance"), prev: a.hwPrevMonthPct, curr: a.hwCurrentMonthPct, delta: a.hwMoMDelta, prevMonth: a.hwPrevMonthKey, currMonth: a.hwLastMonth, hasPrev: a.hwHasPrev },
   ];
 
   return (
@@ -113,7 +117,9 @@ export default function Insights({ onOpenPrintReport }) {
           <span style={{ fontSize: 14, color: c.onAccent, opacity: 0.75 }}>/ 100</span>
         </div>
         <div style={{ fontSize: 12.5, color: a.overallDeltaSinceFirst >= 0 ? "#BFE8CE" : "#F3C6BA", fontWeight: 700, marginTop: 2 }}>
-          {a.overallDeltaSinceFirst >= 0 ? "▲" : "▼"} {a.overallDeltaSinceFirst >= 0 ? "+" : ""}{a.overallDeltaSinceFirst}% {t("sinceMonth", { month: mn(a.firstGradeMonth) })}
+          {a.gradeMonths.length > 1
+            ? <>{a.overallDeltaSinceFirst >= 0 ? "▲" : "▼"} {a.overallDeltaSinceFirst >= 0 ? "+" : ""}{a.overallDeltaSinceFirst}% {t("sinceMonth", { month: mn(a.firstGradeMonth) })}</>
+            : t("singleMonthNote")}
         </div>
         <div style={{ fontSize: 10.5, color: c.onAccent, opacity: 0.7, marginTop: 6 }}>
           {t("overallScoreExplainer", { gradesPct: Math.round(a.overallWeights.grades * 100), attPct: Math.round(a.overallWeights.attendance * 100), hwPct: Math.round(a.overallWeights.homework * 100) })}
@@ -139,12 +145,12 @@ export default function Insights({ onOpenPrintReport }) {
               <tr key={row.label} style={{ borderTop: `1px solid ${c.border}` }}>
                 <td style={{ padding: "8px 4px", fontWeight: 600, color: c.textPrimary }}>{row.label}</td>
                 <td style={{ padding: "8px 4px", textAlign: "right", color: c.textSecondary }}>
-                  {row.prevMonth ? `${mn(row.prevMonth)} ` : ""}{row.prev !== null ? `${row.prev}%` : t("noData")}
+                  {row.hasPrev === false ? "—" : <>{row.prevMonth ? `${mn(row.prevMonth)} ` : ""}{row.prev !== null ? `${row.prev}%` : t("noData")}</>}
                 </td>
                 <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700, color: c.textPrimary }}>
-                  {row.currMonth ? `${mn(row.currMonth)} ` : ""}{row.curr !== null ? `${row.curr}%` : t("noData")}
+                  {row.currMonth ? `${mn(row.currMonth)} ` : ""}{row.currIsNew === false ? t("noAssessmentThisMonth") : row.curr !== null ? `${row.curr}%` : t("noData")}
                 </td>
-                <td style={{ padding: "8px 4px", textAlign: "right" }}>{(row.prev !== null && row.curr !== null) ? <DeltaTag delta={row.delta} c={c} /> : "—"}</td>
+                <td style={{ padding: "8px 4px", textAlign: "right" }}>{(row.currIsNew !== false && row.hasPrev !== false && row.prev !== null && row.curr !== null) ? <DeltaTag delta={row.delta} c={c} /> : "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -167,10 +173,16 @@ export default function Insights({ onOpenPrintReport }) {
         {a.subjectTrends.map(s => (
           <div key={s.name} style={{ background: c.surfaceAlt, borderRadius: 10, padding: "12px 14px", marginBottom: 8 }}>
             <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4, color: c.textPrimary }}>{subj(lang, s.name)}</div>
-            <div style={{ fontSize: 12, color: c.textSecondary }}>
-              {mn(s.firstMonth)} {s.first}% ───── {mn(a.lastGradeMonth)} {s.last}%
-            </div>
-            <DeltaTag delta={s.delta} c={c} />
+            {s.firstMonth === a.lastGradeMonth ? (
+              <div style={{ fontSize: 12, color: c.textSecondary }}>{mn(a.lastGradeMonth)} {s.last}% · {t("singleMonthNote")}</div>
+            ) : (
+              <>
+                <div style={{ fontSize: 12, color: c.textSecondary }}>
+                  {mn(s.firstMonth)} {s.first}% ───── {mn(a.lastGradeMonth)} {s.last}%
+                </div>
+                <DeltaTag delta={s.delta} c={c} />
+              </>
+            )}
           </div>
         ))}
       </Section>
@@ -181,9 +193,11 @@ export default function Insights({ onOpenPrintReport }) {
           <TrendLineChart data={a.attByMonth.map(r => ({ month: mn(r.month), pct: r.pct }))} dataKey="pct" xKey="month" domain={[0, 100]} />
           <div style={{ padding: "4px 4px 10px" }}>
             <div style={{ fontSize: 12, color: c.textSecondary, marginBottom: 4 }}>
-              {a.attFirstMonth ? mn(a.attFirstMonth) : ""} {a.attFirst !== null ? `${a.attFirst}%` : t("noAttendanceData")} → {a.attLastMonth ? mn(a.attLastMonth) : ""} {a.attLast !== null ? `${a.attLast}%` : t("noAttendanceData")}
+              {a.attFirstMonth && a.attFirstMonth === a.attLastMonth
+                ? `${mn(a.attLastMonth)} ${a.attLast}% · ${t("singleMonthNote")}`
+                : <>{a.attFirstMonth ? mn(a.attFirstMonth) : ""} {a.attFirst !== null ? `${a.attFirst}%` : t("noAttendanceData")} → {a.attLastMonth ? mn(a.attLastMonth) : ""} {a.attLast !== null ? `${a.attLast}%` : t("noAttendanceData")}</>}
             </div>
-            {a.attFirst !== null && a.attLast !== null && <DeltaTag delta={a.attLast - a.attFirst} c={c} />}
+            {a.attHasPrev && a.attFirst !== null && a.attLast !== null && <DeltaTag delta={a.attLast - a.attFirst} c={c} />}
           </div>
         </div>
       </Section>
@@ -194,7 +208,7 @@ export default function Insights({ onOpenPrintReport }) {
           {a.hwByMonth.length > 1 ? (
             <TrendLineChart data={a.hwByMonth.map(r => ({ month: mn(r.month), pct: r.pct }))} dataKey="pct" xKey="month" domain={[0, 100]} />
           ) : (
-            <div style={{ textAlign: "center", padding: "20px 0", fontSize: 12, color: c.textSecondary }}>{t("noData")}</div>
+            <div style={{ textAlign: "center", padding: "20px 0", fontSize: 12, color: c.textSecondary }}>{t("trendNeedsMonths")}</div>
           )}
           <div style={{ padding: "10px 4px 10px" }}>
             <Row label={t("hwCompletionLabel")} value={`${a.hwStatsOverall.completionRate}%`} sub={t("assignmentsCompletedOf", { completed: a.hwStatsOverall.completed, total: a.hwStatsOverall.total })} />

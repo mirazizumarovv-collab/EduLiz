@@ -1,29 +1,40 @@
 import React, { useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { useApp } from "../../context/AppContext.jsx";
-import { CURRENT_DATE_STR } from "../../constants/months.js";
 import { getHomeworkStatusForStudent } from "../../utils/calculations.js";
 import { Button } from "../../components/common/UI.jsx";
+import { orderForTeacher } from "../../utils/homeworkRules.js";
+import { isValidISODate } from "../../utils/gradeModel.js";
 
 const STATUS_COLOR = { completed: "good", overdue: "bad", pending: "medium" };
 
 export default function AssignHomework() {
-  const { t, theme, myGroups, addHomework, homeworkRecords, homeworkSubmissions, toggleHomeworkSubmission, students } = useApp();
+  const { t, theme, myGroups, addHomework, homeworkRecords, homeworkSubmissions, toggleHomeworkSubmission, students, today } = useApp();
   const c = theme.colors;
   const [groupId, setGroupId] = useState(myGroups[0]?.id || "");
   const [title, setTitle] = useState("");
-  const [dueDate, setDueDate] = useState(CURRENT_DATE_STR);
+  const [dueDate, setDueDate] = useState(today);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [openId, setOpenId] = useState(null);
 
   const group = myGroups.find(g => g.id === groupId);
-  const list = (homeworkRecords[groupId] || []).slice().reverse();
+  // Ordered the way the Parent sees the same work: still coming up first (soonest
+  // due on top), then what is past (most recent first).
+  const list = orderForTeacher(homeworkRecords[groupId] || [], today);
 
   const handleSave = () => {
-    if (!title.trim() || !groupId) return;
-    if (dueDate < CURRENT_DATE_STR) { setError(t("dueDateInPast")); return; }
-    addHomework(groupId, title.trim(), dueDate);
+    if (!groupId) return;
+    if (!title.trim()) { setError(t("enterHomeworkTitle")); return; }
+    if (!isValidISODate(dueDate)) { setError(t("errorDateInvalid")); return; }
+    if (dueDate < today) { setError(t("dueDateInPast")); return; }
+    const r = addHomework(groupId, title.trim(), dueDate);
+    if (!r.ok) {
+      setError(r.reason === "duplicate" ? t("errorHomeworkDuplicate", { title: title.trim() })
+        : r.reason === "title" ? t("enterHomeworkTitle") : t("errorDateInvalid"));
+      setSaved(false);
+      return;
+    }
     setTitle("");
     setError("");
     setSaved(true);
@@ -45,20 +56,20 @@ export default function AssignHomework() {
           style={{ flex: 1, minWidth: 220, border: `1px solid ${c.border}`, borderRadius: 10, padding: "10px 12px", background: c.surfaceAlt, color: c.textPrimary, fontSize: 13 }}
         />
         <input
-          type="date" value={dueDate} min={CURRENT_DATE_STR} onChange={(e) => { setDueDate(e.target.value); setError(""); }}
+          type="date" value={dueDate} min={today} onChange={(e) => { setDueDate(e.target.value); setError(""); }}
           style={{ border: `1px solid ${c.border}`, borderRadius: 10, padding: "10px 12px", background: c.surfaceAlt, color: c.textPrimary, fontSize: 13 }}
         />
       </div>
 
       <Button onClick={handleSave} style={{ width: "100%", maxWidth: 260, marginBottom: 10 }}>{t("assignHomework")}</Button>
-      {error && <div style={{ fontSize: 12.5, color: c.danger, marginBottom: 10 }}>{error}</div>}
+      {error && <div role="alert" style={{ fontSize: 12.5, color: c.danger, marginBottom: 10 }}>{error}</div>}
       {saved && <div style={{ fontSize: 12.5, color: c.good, marginBottom: 20 }}>✓ {t("homeworkAssigned")}</div>}
 
       <div style={{ fontSize: 13, fontWeight: 700, color: c.textPrimary, marginTop: 24, marginBottom: 10 }}>{t("assignedHomeworkList")}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {list.length === 0 && <div style={{ fontSize: 12.5, color: c.textSecondary }}>—</div>}
         {list.map(hw => {
-          const completedCount = group ? group.studentIds.filter(sid => getHomeworkStatusForStudent(hw, sid, homeworkSubmissions, CURRENT_DATE_STR) === "completed").length : 0;
+          const completedCount = group ? group.studentIds.filter(sid => getHomeworkStatusForStudent(hw, sid, homeworkSubmissions, today) === "completed").length : 0;
           return (
             <div key={hw.id} style={{ background: c.surface, borderRadius: 10, padding: "12px 16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -75,7 +86,7 @@ export default function AssignHomework() {
                   {group.studentIds.map(sid => {
                     const s = students.find(st => st.id === sid);
                     if (!s) return null;
-                    const status = getHomeworkStatusForStudent(hw, sid, homeworkSubmissions, CURRENT_DATE_STR);
+                    const status = getHomeworkStatusForStudent(hw, sid, homeworkSubmissions, today);
                     return (
                       <label key={sid} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12.5, color: c.textPrimary, background: c.surfaceAlt, borderRadius: 6, padding: "6px 10px", cursor: "pointer" }}>
                         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>

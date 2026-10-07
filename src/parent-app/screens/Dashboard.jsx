@@ -5,20 +5,23 @@ import { useAsyncData } from "../hooks/useAsyncData.js";
 import { attendanceService, gradeService, homeworkService, notificationService } from "../services/index.js";
 import { Section, Row, AlertCard, StatPill } from "../components/common/UI.jsx";
 import { LoadingSkeleton, ErrorState } from "../components/common/Feedback.jsx";
-import { CURRENT_MONTH } from "../constants/months.js";
-import { attendanceRate, currentPresentStreak, recentLateCount, scoreColor, daysUntilPaymentDue } from "../utils/calculations.js";
+import { currentMonthAbbr, currentDay } from "../../utils/clock.js";
+import { mostRecentSubject, attendanceRate, currentPresentStreak, recentLateCount, scoreColor, daysUntilPaymentDue, getAlertableUnreadCount } from "../utils/calculations.js";
 import { subj } from "../utils/subjectNames.js";
 import { getPayments } from "../data/payments.js";
 import { getHomework } from "../data/homework.js";
 
 export default function Dashboard({ onNavigate }) {
-  const { t, selectedStudent, lang, theme, notifPrefs, readNotifIds, deletedNotifIds } = useApp();
+  const { t, selectedStudent, lang, theme, notifPrefs, quietHours, readNotifIds, deletedNotifIds, parentName,
+    attendanceRecords, gradesRecords, homeworkRecords, homeworkSubmissions, paymentsStatus, today, nowTime } = useApp();
   const c = theme.colors;
 
-  const attendanceQ = useAsyncData(() => attendanceService.get(selectedStudent.id), [selectedStudent.id]);
-  const gradesQ = useAsyncData(() => gradeService.get(selectedStudent.id), [selectedStudent.id]);
-  const homeworkQ = useAsyncData(() => homeworkService.get(selectedStudent.id), [selectedStudent.id]);
-  const notifQ = useAsyncData(() => notificationService.get(selectedStudent.id), [selectedStudent.id]);
+  // Live: canonical stores are in each dependency array, so this screen
+  // re-fetches the moment Teacher/Admin/Operator changes the relevant data.
+  const attendanceQ = useAsyncData(() => attendanceService.get(selectedStudent.id), [selectedStudent.id, attendanceRecords, today]);
+  const gradesQ = useAsyncData(() => gradeService.get(selectedStudent.id), [selectedStudent.id, gradesRecords, today]);
+  const homeworkQ = useAsyncData(() => homeworkService.get(selectedStudent.id), [selectedStudent.id, homeworkRecords, homeworkSubmissions, today]);
+  const notifQ = useAsyncData(() => notificationService.get(selectedStudent.id), [selectedStudent.id, gradesRecords, homeworkRecords, homeworkSubmissions, paymentsStatus, attendanceRecords, today]);
 
   const loading = attendanceQ.loading || gradesQ.loading || homeworkQ.loading;
   const error = attendanceQ.error || gradesQ.error || homeworkQ.error;
@@ -26,28 +29,26 @@ export default function Dashboard({ onNavigate }) {
   if (loading) return <div style={{ padding: 18 }}><LoadingSkeleton rows={6} /></div>;
   if (error) return <ErrorState t={t} message={t("failedToLoad")} onRetry={() => { attendanceQ.reload(); gradesQ.reload(); homeworkQ.reload(); }} />;
 
-  const monthDays = attendanceQ.data[CURRENT_MONTH];
-  const today = monthDays.length > 0 ? monthDays[monthDays.length - 1] : null;
+  const monthDays = attendanceQ.data[currentMonthAbbr(today)];
+  const todayRecord = monthDays.find(d => d.day === currentDay(today)) || null;
   const rate = attendanceRate(monthDays);
-  const streak = currentPresentStreak(monthDays);
-  const lateRecent = recentLateCount(monthDays);
+  const streak = currentPresentStreak(attendanceQ.data);
+  const lateRecent = recentLateCount(attendanceQ.data);
   const subjects = gradesQ.data;
-  const topSubject = subjects.length > 0 ? subjects[0] : null;
+  const topSubject = mostRecentSubject(subjects);
   const overallAvg = subjects.length > 0 ? Math.round(subjects.reduce((a, s) => a + s.score, 0) / subjects.length) : null;
   const pendingHomework = homeworkQ.data.pending;
-  const unreadCount = (notifQ.data || []).filter(n =>
-    notifPrefs[n.category] && !deletedNotifIds.has(n.id) && !n.read && !readNotifIds.has(n.id)
-  ).length;
+  const unreadCount = getAlertableUnreadCount(notifQ.data || [], notifPrefs, quietHours, nowTime, readNotifIds, deletedNotifIds);
   const payment = getPayments(selectedStudent.id);
 
   // Alerts are gathered once so we can show a calm "all clear" state when
   // there's genuinely nothing urgent, instead of an empty section.
   const alerts = [];
-  if (today?.status === "A") {
+  if (todayRecord?.status === "A") {
     alerts.push({ Icon: AlertTriangle, tone: "warn", label: t("alertAbsentToday", { name: selectedStudent.name }), onClick: () => onNavigate("attendance") });
   }
   if (payment.status !== "paid") {
-    const days = daysUntilPaymentDue(payment.deadline, `${new Date().getFullYear()}-09-08`);
+    const days = daysUntilPaymentDue(payment.deadline, today);
     const label = days === 0 ? t("alertPaymentDueToday") : days < 0 ? t("alertPaymentOverdue", { days: Math.abs(days) }) : t("alertPaymentDue", { days });
     alerts.push({ Icon: CreditCard, tone: "caution", label, onClick: () => onNavigate("payments") });
   }
@@ -59,16 +60,16 @@ export default function Dashboard({ onNavigate }) {
   // resolved homework item and the most recent grade entry. Every piece is
   // conditional since a freshly-connected student may genuinely have none
   // of these yet (no teacher has entered anything).
-  const recentHw = [...homeworkQ.data.history].reverse()[0];
+  const recentHw = homeworkQ.data.history[0];
   const activity = [];
   if (recentHw) activity.push({ icon: recentHw.status === "completed" ? "📝" : "🔴", text: t("activityHwDone", { title: recentHw.title }) });
   if (topSubject) activity.push({ icon: "📊", text: t("activityNewGrade", { subject: subj(lang, topSubject.name), score: topSubject.score }) });
-  if (today && today.status !== "A") activity.push({ icon: "✓", text: t("activityAttended", { subject: subj(lang, today.subject) }) });
+  if (todayRecord && todayRecord.status !== "A") activity.push({ icon: "✓", text: t("activityAttended", { subject: subj(lang, todayRecord.subject) }) });
 
   return (
     <div style={{ padding: "18px 16px 8px" }}>
       <div style={{ fontFamily: "inherit", fontSize: 22, fontWeight: 800, marginBottom: 14, color: c.textPrimary }}>
-        {t("dashboardGreeting", { name: "Dilnoza" })}
+        {t("dashboardGreeting", { name: parentName || "" })}
       </div>
 
       {/* IMPORTANT ALERTS — visually distinct, never blends in with normal rows */}

@@ -5,7 +5,8 @@ import { attendanceService } from "../services/index.js";
 import { Section, Row } from "../components/common/UI.jsx";
 import { BottomSheet } from "../components/common/Feedback.jsx";
 import { LoadingSkeleton, ErrorState } from "../components/common/Feedback.jsx";
-import { MONTHS, MONTH_NAMES } from "../constants/months.js";
+import { MONTH_NAMES } from "../constants/months.js";
+import { getMonths } from "../../utils/clock.js";
 import { attendanceRate, longestPresentStreak, scoreColor } from "../utils/calculations.js";
 import { subj } from "../utils/subjectNames.js";
 
@@ -17,27 +18,31 @@ const STATUS_META = {
 };
 
 export default function Attendance() {
-  const { t, lang, selectedStudent, theme } = useApp();
+  const { t, lang, selectedStudent, theme, attendanceRecords, today } = useApp();
   const c = theme.colors;
-  const [monthIdx, setMonthIdx] = useState(MONTHS.length - 1);
+  const months = getMonths(today); // the months in view, ending with the current one
+  const [monthIdx, setMonthIdx] = useState(months.length - 1);
   const [openDay, setOpenDay] = useState(null);
 
-  const { data, loading, error, reload } = useAsyncData(() => attendanceService.get(selectedStudent.id), [selectedStudent.id]);
+  const { data, loading, error, reload } = useAsyncData(() => attendanceService.get(selectedStudent.id), [selectedStudent.id, attendanceRecords, today]);
+  // Live: the canonical store is in the dependency array, so this re-fetches
+  // the moment Teacher/Admin/Operator changes it — no remount needed (see Chat.jsx
+  // for the same pattern applied directly against context instead of a service).
 
   if (loading) return <div style={{ padding: 18 }}><LoadingSkeleton rows={5} /></div>;
   if (error) return <ErrorState t={t} message={t("failedToLoad")} onRetry={reload} />;
 
-  const monthKey = MONTHS[monthIdx];
+  const monthKey = months[monthIdx];
   const days = data[monthKey];
   const rate = attendanceRate(days);
-  const lastMonthKey = MONTHS[monthIdx - 1];
+  const lastMonthKey = months[monthIdx - 1];
   const lastMonthRate = lastMonthKey ? attendanceRate(data[lastMonthKey]) : null;
   const streak = longestPresentStreak(data);
   const present = days.filter(d => d.status === "P").length;
   const late = days.filter(d => d.status === "L");
   const absent = days.filter(d => d.status === "A").length;
 
-  const trendMsg = lastMonthRate === null ? null : rate >= lastMonthRate ? t("attendanceGoodMsg") : t("attendanceDropMsg");
+  const trendMsg = (rate === null || lastMonthRate === null) ? null : rate >= lastMonthRate ? t("attendanceGoodMsg") : t("attendanceDropMsg");
 
   return (
     <div style={{ padding: "18px 16px 8px" }}>
@@ -46,7 +51,7 @@ export default function Attendance() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <button disabled={monthIdx === 0} onClick={() => setMonthIdx(i => i - 1)} style={{ border: "none", background: "transparent", color: monthIdx === 0 ? c.textSecondary : c.accent, fontSize: 18, opacity: monthIdx === 0 ? 0.4 : 1 }}>‹</button>
         <span style={{ fontSize: 13, color: c.textSecondary }}>{MONTH_NAMES[lang][monthKey]}</span>
-        <button disabled={monthIdx === MONTHS.length - 1} onClick={() => setMonthIdx(i => i + 1)} style={{ border: "none", background: "transparent", color: monthIdx === MONTHS.length - 1 ? c.textSecondary : c.accent, fontSize: 18, opacity: monthIdx === MONTHS.length - 1 ? 0.4 : 1 }}>›</button>
+        <button disabled={monthIdx === months.length - 1} onClick={() => setMonthIdx(i => i + 1)} style={{ border: "none", background: "transparent", color: monthIdx === months.length - 1 ? c.textSecondary : c.accent, fontSize: 18, opacity: monthIdx === months.length - 1 ? 0.4 : 1 }}>›</button>
       </div>
       <div style={{ fontSize: 11, color: c.textSecondary, marginBottom: 14 }}>{t("tapDayHint")}</div>
 
@@ -63,7 +68,7 @@ export default function Attendance() {
         ))}
       </div>
 
-      <Row label={t("attendanceRate")} value={`${rate}%`} valueColor={scoreColor(theme, rate, [75, 90])} sub={`${t("longestStreak")}: ${streak}`} />
+      <Row label={t("attendanceRate")} value={rate !== null ? `${rate}%` : t("noAttendanceData")} valueColor={rate !== null ? scoreColor(theme, rate, [75, 90]) : c.textSecondary} sub={`${t("longestStreak")}: ${streak}`} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, margin: "14px 0 18px" }}>
         {days.map((d, i) => {
@@ -72,7 +77,7 @@ export default function Attendance() {
           const fg = d.status === "L" ? "#33270A" : "#FFFFFF";
           return (
             <button
-              key={i}
+              key={d.day}
               onClick={() => setOpenDay(d)}
               aria-label={`${d.day}: ${t(meta.labelKey)}`}
               style={{ aspectRatio: "1", borderRadius: 6, background: bg, color: fg, border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, minHeight: 34 }}
@@ -86,7 +91,7 @@ export default function Attendance() {
 
       <Section title={t("late")}>
         {late.length === 0 ? <div style={{ fontSize: 12.5, color: c.textSecondary }}>—</div> :
-          late.map((d, i) => <Row key={i} label={`${MONTH_NAMES[lang][monthKey]} ${d.day}`} value={`${d.lateBy} ${t("minutes")}`} />)}
+          late.map(d => <Row key={d.day} label={`${MONTH_NAMES[lang][monthKey]} ${d.day}`} value={`${d.lateBy} ${t("minutes")}`} />)}
       </Section>
 
       <BottomSheet open={!!openDay} onClose={() => setOpenDay(null)} title={openDay ? `${MONTH_NAMES[lang][monthKey]} ${openDay.day}` : ""}>

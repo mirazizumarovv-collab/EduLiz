@@ -4,17 +4,20 @@ import { useAsyncData } from "../hooks/useAsyncData.js";
 import { attendanceService, gradeService, homeworkService } from "../services/index.js";
 import { Section, Row, Button, StatPill } from "../components/common/UI.jsx";
 import { LoadingSkeleton, ErrorState } from "../components/common/Feedback.jsx";
-import { CURRENT_MONTH } from "../constants/months.js";
+import { currentMonthAbbr } from "../../utils/clock.js";
 import { attendanceRate, homeworkStats, scoreColor } from "../utils/calculations.js";
 import { subj } from "../utils/subjectNames.js";
 
 export default function Profile({ onNavigate }) {
-  const { t, lang, theme, studentList, selectedStudent, selectedStudentId, setSelectedStudentId } = useApp();
+  const { t, lang, theme, studentList, selectedStudent, selectedStudentId, setSelectedStudentId, parentPhone, parentName,
+    attendanceRecords, gradesRecords, homeworkRecords, homeworkSubmissions, today } = useApp();
   const c = theme.colors;
 
-  const attendanceQ = useAsyncData(() => attendanceService.get(selectedStudent.id), [selectedStudent.id]);
-  const gradesQ = useAsyncData(() => gradeService.get(selectedStudent.id), [selectedStudent.id]);
-  const homeworkQ = useAsyncData(() => homeworkService.get(selectedStudent.id), [selectedStudent.id]);
+  // Live: canonical stores are in each dependency array, so this screen
+  // re-fetches the moment Teacher/Admin/Operator changes the relevant data.
+  const attendanceQ = useAsyncData(() => attendanceService.get(selectedStudent.id), [selectedStudent.id, attendanceRecords, today]);
+  const gradesQ = useAsyncData(() => gradeService.get(selectedStudent.id), [selectedStudent.id, gradesRecords, today]);
+  const homeworkQ = useAsyncData(() => homeworkService.get(selectedStudent.id), [selectedStudent.id, homeworkRecords, homeworkSubmissions, today]);
   const loading = attendanceQ.loading || gradesQ.loading || homeworkQ.loading;
   const error = attendanceQ.error || gradesQ.error || homeworkQ.error;
 
@@ -23,12 +26,14 @@ export default function Profile({ onNavigate }) {
       <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 16, color: c.textPrimary }}>{t("profile")}</div>
 
       <Section title={t("sectionAccount")}>
-        <Row label={t("profile")} value="Dilnoza A." />
-        <Row label={t("phoneNumber")} value="+998 90 123 45 67" />
+        <Row label={t("profile")} value={parentName || "—"} />
+        <Row label={t("phoneNumber")} value={parentPhone || "—"} />
       </Section>
 
+      {loading && <LoadingSkeleton rows={4} />}
+      {!loading && error && <ErrorState t={t} message={t("failedToLoad")} onRetry={() => { attendanceQ.reload(); gradesQ.reload(); homeworkQ.reload(); }} />}
       {!loading && !error && (() => {
-        const monthDays = attendanceQ.data[CURRENT_MONTH];
+        const monthDays = attendanceQ.data[currentMonthAbbr(today)];
         const rate = attendanceRate(monthDays);
         const subjects = gradesQ.data;
         const overallAvg = subjects.length > 0 ? Math.round(subjects.reduce((a, s) => a + s.score, 0) / subjects.length) : null;

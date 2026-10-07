@@ -1,13 +1,14 @@
-import { CURRENT_MONTH } from "../constants/months.js";
 import { attendanceRate, recentLateCount, monthOverMonthDelta, homeworkStats } from "./calculations.js";
 
 // Structured so a real AI/LLM call can later replace the rule engine below
 // without changing the shape screens consume: an array of { type, textKey, vars }.
 export function generateInsights({ attendanceData, grades, homework }) {
   const insights = [];
-  const monthDays = attendanceData[CURRENT_MONTH];
+  // The window of months always ends with the current one, so it is the last key.
+  const months = Object.keys(attendanceData);
+  const monthDays = attendanceData[months[months.length - 1]];
   const rate = attendanceRate(monthDays);
-  const lateRecent = recentLateCount(monthDays);
+  const lateRecent = recentLateCount(attendanceData);
 
   if (rate >= 95) {
     insights.push({ type: "positive", textKey: "insightAttendanceGood", vars: { pct: rate } });
